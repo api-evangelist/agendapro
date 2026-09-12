@@ -1,0 +1,64 @@
+generated: '2026-09-12'
+method: searched
+source: https://developers.agendapro.com/docs/getting-started
+docs: https://developers.agendapro.com/docs/getting-started
+limit_count: 2
+enforced_per: company (derived from the API key)
+rate_limits:
+- name: Burst limit
+  scope: per-company
+  window: 1 minute
+  limit: 70
+  burst: null
+  headers:
+  - X-RateLimit-Burst-Limit
+  - X-RateLimit-Burst-Remaining
+  - X-RateLimit-Burst-Reset
+  exhausted_status: 429
+  exhausted_error:
+    error: rate_limited
+    detail: burst_limit_exceeded
+  source: https://developers.agendapro.com/docs/getting-started
+- name: Daily quota
+  scope: per-company
+  window: 1 day
+  limit: 10000
+  burst: null
+  headers:
+  - X-RateLimit-Limit
+  - X-RateLimit-Remaining
+  - X-RateLimit-Reset
+  exhausted_status: 429
+  exhausted_error:
+    error: rate_limited
+    detail: daily_quota_exceeded
+  source: https://developers.agendapro.com/docs/getting-started
+response_headers:
+- header: X-RateLimit-Limit
+  meaning: Daily quota limit
+- header: X-RateLimit-Remaining
+  meaning: Daily requests remaining
+- header: X-RateLimit-Reset
+  meaning: Unix timestamp when the daily quota resets
+- header: X-RateLimit-Burst-Limit
+  meaning: Per-minute burst limit
+- header: X-RateLimit-Burst-Remaining
+  meaning: Burst requests remaining in the current window
+- header: X-RateLimit-Burst-Reset
+  meaning: Unix timestamp when the burst window resets
+- header: Retry-After
+  meaning: Returned with 429; seconds to wait before retrying
+exhaustion:
+  status: 429
+  retry_after_header: Retry-After
+  envelope:
+    error: rate_limited
+    detail: burst_limit_exceeded | daily_quota_exceeded
+standards:
+  ietf_ratelimit_headers_rfc9331: false
+  note: Uses the legacy X-RateLimit-* vendor prefix, not the standard RateLimit / RateLimit-Policy fields.
+notes:
+- Every operation in the OpenAPI declares a 429 response, so the limit is uniform across the surface rather than
+  per-endpoint.
+- 'Limits were read from the published developer documentation, not observed on a live response: the API host rejects
+  unauthenticated requests at the gateway before any rate-limit header is emitted.'

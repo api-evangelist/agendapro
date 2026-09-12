@@ -1,0 +1,156 @@
+generated: '2026-09-12'
+method: probed
+source: live HTTPS probes of each AgendaPro host, 2026-09-12
+documents_found: 0
+summary: No /.well-known document of any kind is served on any AgendaPro host. agendapro.com, www.agendapro.com
+  and developers.agendapro.com return a genuine 404 on every probed path. app.agendapro.com returns 200 for every
+  path with the SPA HTML shell and is a false positive, not a served document. connect.agendapro.com (the API host)
+  returns the AWS API Gateway 401 catch-all "Missing Authentication Token" for every unrouted path. No WellKnown,
+  SecurityTxt, APICatalog or AgentCard pointer is emitted for this provider, because nothing is published.
+hosts:
+- host: agendapro.com
+  documents:
+  - path: /.well-known/security.txt
+    status: 404
+    file: null
+  - path: /.well-known/openid-configuration
+    status: 404
+    file: null
+  - path: /.well-known/oauth-authorization-server
+    status: 404
+    file: null
+  - path: /.well-known/api-catalog
+    status: 404
+    file: null
+  - path: /.well-known/ai-plugin.json
+    status: 404
+    file: null
+  - path: /.well-known/agent-card.json
+    status: 404
+    file: null
+  - path: /.well-known/agent.json
+    status: 404
+    file: null
+- host: www.agendapro.com
+  documents:
+  - path: /.well-known/security.txt
+    status: 404
+    file: null
+  - path: /.well-known/openid-configuration
+    status: 404
+    file: null
+  - path: /.well-known/oauth-authorization-server
+    status: 404
+    file: null
+  - path: /.well-known/api-catalog
+    status: 404
+    file: null
+  - path: /.well-known/ai-plugin.json
+    status: 404
+    file: null
+  - path: /.well-known/agent-card.json
+    status: 404
+    file: null
+  - path: /.well-known/agent.json
+    status: 404
+    file: null
+- host: developers.agendapro.com
+  documents:
+  - path: /.well-known/security.txt
+    status: 404
+    file: null
+  - path: /.well-known/openid-configuration
+    status: 404
+    file: null
+  - path: /.well-known/oauth-authorization-server
+    status: 404
+    file: null
+  - path: /.well-known/api-catalog
+    status: 404
+    file: null
+  - path: /.well-known/ai-plugin.json
+    status: 404
+    file: null
+  - path: /.well-known/agent-card.json
+    status: 404
+    file: null
+  - path: /.well-known/agent.json
+    status: 404
+    file: null
+- host: app.agendapro.com
+  documents:
+  - path: /.well-known/security.txt
+    status: 200
+    file: null
+    note: 200 but the body is the AgendaPro single-page-app HTML shell (<title>AgendaPro</title>), returned identically
+      for every /.well-known/* path. Not a document — recorded as a miss.
+  - path: /.well-known/openid-configuration
+    status: 200
+    file: null
+    note: 200 but the body is the AgendaPro single-page-app HTML shell (<title>AgendaPro</title>), returned identically
+      for every /.well-known/* path. Not a document — recorded as a miss.
+  - path: /.well-known/oauth-authorization-server
+    status: 200
+    file: null
+    note: 200 but the body is the AgendaPro single-page-app HTML shell (<title>AgendaPro</title>), returned identically
+      for every /.well-known/* path. Not a document — recorded as a miss.
+  - path: /.well-known/api-catalog
+    status: 200
+    file: null
+    note: 200 but the body is the AgendaPro single-page-app HTML shell (<title>AgendaPro</title>), returned identically
+      for every /.well-known/* path. Not a document — recorded as a miss.
+  - path: /.well-known/ai-plugin.json
+    status: 200
+    file: null
+    note: 200 but the body is the AgendaPro single-page-app HTML shell (<title>AgendaPro</title>), returned identically
+      for every /.well-known/* path. Not a document — recorded as a miss.
+  - path: /.well-known/agent-card.json
+    status: 200
+    file: null
+    note: 200 but the body is the AgendaPro single-page-app HTML shell (<title>AgendaPro</title>), returned identically
+      for every /.well-known/* path. Not a document — recorded as a miss.
+  - path: /.well-known/agent.json
+    status: 200
+    file: null
+    note: 200 but the body is the AgendaPro single-page-app HTML shell (<title>AgendaPro</title>), returned identically
+      for every /.well-known/* path. Not a document — recorded as a miss.
+- host: connect.agendapro.com
+  documents:
+  - path: /.well-known/security.txt
+    status: 401
+    file: null
+    note: 'API gateway catch-all: {"message":"Missing Authentication Token"} for every unrouted path, including
+      / and /openapi.json. Not a document.'
+  - path: /.well-known/openid-configuration
+    status: 401
+    file: null
+    note: 'API gateway catch-all: {"message":"Missing Authentication Token"} for every unrouted path, including
+      / and /openapi.json. Not a document.'
+  - path: /.well-known/oauth-authorization-server
+    status: 401
+    file: null
+    note: 'API gateway catch-all: {"message":"Missing Authentication Token"} for every unrouted path, including
+      / and /openapi.json. Not a document.'
+  - path: /.well-known/api-catalog
+    status: 401
+    file: null
+    note: 'API gateway catch-all: {"message":"Missing Authentication Token"} for every unrouted path, including
+      / and /openapi.json. Not a document.'
+  - path: /.well-known/ai-plugin.json
+    status: 401
+    file: null
+    note: 'API gateway catch-all: {"message":"Missing Authentication Token"} for every unrouted path, including
+      / and /openapi.json. Not a document.'
+  - path: /.well-known/agent-card.json
+    status: 401
+    file: null
+    note: 'API gateway catch-all: {"message":"Missing Authentication Token"} for every unrouted path, including
+      / and /openapi.json. Not a document.'
+  - path: /.well-known/agent.json
+    status: 401
+    file: null
+    note: 'API gateway catch-all: {"message":"Missing Authentication Token"} for every unrouted path, including
+      / and /openapi.json. Not a document.'
+notes:
+- This file records a measured absence. Per the pipeline contract, no common[] pointer is wired from it — an absence
+  must never be advertised as a presence.

@@ -1,0 +1,5161 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Connect v3",
+    "version": "3.0.0",
+    "description": "Public API gateway for AgendaPro.\nAuthenticates external developers, enforces rate limits and scopes, and proxies requests to internal services.\n\n## Authentication\n\nAll requests require a Bearer API key in the `Authorization` header:\n\n```\nAuthorization: Bearer <your-api-key>\n```\n\nAPI keys are scoped to a single company. The `company_id` is derived automatically\nfrom the API key \u2014 you never pass it as a parameter.\n\n## Scopes\n\nAPI keys may be restricted to specific scopes. Scopes follow the pattern `{resource}:{action}`:\n\n| Scope | Description |\n| --- | --- |\n| `bookings:read` | List and show bookings |\n| `bookings:write` | Create, update, and cancel bookings |\n| `clients:read` | List and show clients |\n| `clients:write` | Create and update clients |\n| `locations:read` | List and show locations |\n| `services:read` | List and show services |\n| `providers:read` | List and show providers |\n| `custom_attributes:read` | List custom attribute templates |\n| `sales:read` | List and show sales |\n\nAn API key with empty scopes has full access (all scopes granted).\n\n## Rate Limiting\n\nTwo rate limits apply per company:\n\n- **Burst limit**: Maximum requests per minute.\n- **Daily quota**: Maximum requests per day.\n\nRate limit status is returned in response headers:\n\n| Header | Description |\n| --- | --- |\n| `X-RateLimit-Limit` | Daily quota limit |\n| `X-RateLimit-Remaining` | Daily requests remaining |\n| `X-RateLimit-Reset` | Unix timestamp when daily quota resets |\n| `X-RateLimit-Burst-Limit` | Burst (per-minute) limit |\n| `X-RateLimit-Burst-Remaining` | Burst requests remaining |\n| `X-RateLimit-Burst-Reset` | Unix timestamp when burst window resets |\n\nWhen either limit is exceeded, the API returns `429 Too Many Requests` with a `Retry-After` header.\n\n## Pagination\n\nList endpoints return paginated responses wrapped in a `data` array with a `pagination` metadata object:\n\n```json\n{\n  \"data\": [...],\n  \"pagination\": {\n    \"current_page\": 1,\n    \"per_page\": 30,\n    \"next_page\": null,\n    \"prev_page\": null,\n    \"total_records\": 95,\n    \"total_pages\": 4\n  }\n}\n```\n\n## Errors\n\nAll error responses use a consistent `{error, detail}` format:\n\n```json\n{\n  \"error\": \"error_type\",\n  \"detail\": \"additional_context\"\n}\n```\n"
+  },
+  "servers": [
+    {
+      "url": "https://connect.agendapro.com",
+      "description": "Production"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Available Slots",
+      "description": "Query available booking slots for a service at a location"
+    },
+    {
+      "name": "Bookings",
+      "description": "Booking management (list, show, create, update, cancel)"
+    },
+    {
+      "name": "Clients",
+      "description": "Client management (list, show, create, update) and custom attributes"
+    },
+    {
+      "name": "Custom Attributes",
+      "description": "Custom attribute templates (company-level definitions)"
+    },
+    {
+      "name": "Locations",
+      "description": "Location listing and details"
+    },
+    {
+      "name": "Services",
+      "description": "Service catalog listing and details"
+    },
+    {
+      "name": "Providers",
+      "description": "Service provider listing and details"
+    },
+    {
+      "name": "Sales",
+      "description": "Sales records (read-only)"
+    },
+    {
+      "name": "Carts",
+      "description": "Shopping carts for the online payment flow"
+    },
+    {
+      "name": "Payment Requests",
+      "description": "Online payment requests (checkout URL) on a cart"
+    }
+  ],
+  "security": [
+    {
+      "BearerAuth": []
+    }
+  ],
+  "paths": {
+    "/v3/available_slots": {
+      "get": {
+        "operationId": "listAvailableSlots",
+        "summary": "List Available Slots",
+        "description": "Returns available booking slots for a service at a location on a given date.\n\nResults are grouped into a `slots` array and a `metadata` object.\nThe `slots` array contains individual time windows; `metadata` summarises the query.\n\n### Important Notes\n\n- Results are scoped to the company associated with the API key.\n- `location_id` and `start_date` are required.\n- Requires `bookings:read` scope.\n\n### Errors Dictionary\n\n| **Status** | **Error** | **Detail** | **Description** |\n| --- | --- | --- | --- |\n| 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |\n| 401 | unauthorized | api_config_inactive | API access is inactive for this company. |\n| 403 | forbidden | scope_denied | API key lacks `bookings:read` scope. |\n| 404 | location_not_found |  | Location not found or does not belong to the company. |\n| 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |\n| 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |\n| 502 | upstream_unavailable |  | The upstream service is unavailable. |\n",
+        "tags": [
+          "Available Slots"
+        ],
+        "parameters": [
+          {
+            "name": "location_id",
+            "in": "query",
+            "description": "Location ID to query slots for.",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "start_date",
+            "in": "query",
+            "description": "Date to query slots for (YYYY-MM-DD).",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-04-08"
+            }
+          },
+          {
+            "name": "service_id",
+            "in": "query",
+            "description": "Filter by service ID.",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "provider_id",
+            "in": "query",
+            "description": "Filter by provider ID.",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Available slots returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "slots": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/AvailableSlot"
+                          }
+                        },
+                        "metadata": {
+                          "$ref": "#/components/schemas/AvailableSlotsMetadata"
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "data": {
+                    "slots": [
+                      {
+                        "start_time": "09:00",
+                        "end_time": "09:30",
+                        "provider_id": 12964,
+                        "provider_name": "Dobby"
+                      },
+                      {
+                        "start_time": "09:30",
+                        "end_time": "10:00",
+                        "provider_id": 12964,
+                        "provider_name": "Dobby"
+                      }
+                    ],
+                    "metadata": {
+                      "location_id": 3257,
+                      "date": "2026-04-08",
+                      "service_id": 3698,
+                      "duration": 30,
+                      "slots_count": 22
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamUnavailable"
+          }
+        }
+      }
+    },
+    "/v3/bookings": {
+      "get": {
+        "operationId": "listBookings",
+        "summary": "List Bookings",
+        "description": "This endpoint returns a paginated list of bookings for the company.\n\n### Important Notes\n\n- Results are scoped to the company associated with the API key.\n- At least one entity filter is required: `client_id`, `location_id`, `service_id`, or `service_provider_id`. The `start_date`/`end_date` parameters narrow results further but do not satisfy this requirement on their own.\n- Requires `bookings:read` scope.\n- `sale` may be the sale of a membership plan, which covers several bookings. Do not aggregate amounts by `sale.id`.\n\n### Errors Dictionary\n\n| **Status** | **Error** | **Detail** | **Description** |\n| --- | --- | --- | --- |\n| 400 | required | params | No entity filter provided. Supply at least one of `client_id`, `location_id`, `service_id`, or `service_provider_id`. |\n| 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |\n| 401 | unauthorized | api_config_inactive | API access is inactive for this company. |\n| 403 | forbidden | scope_denied | API key lacks `bookings:read` scope. |\n| 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |\n| 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |\n| 502 | upstream_unavailable |  | The upstream service is unavailable. |\n",
+        "tags": [
+          "Bookings"
+        ],
+        "parameters": [
+          {
+            "name": "client_id",
+            "in": "query",
+            "description": "Filter by client ID.",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "location_id",
+            "in": "query",
+            "description": "Filter by location ID.",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "service_id",
+            "in": "query",
+            "description": "Filter by service ID.",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "service_provider_id",
+            "in": "query",
+            "description": "Filter by service provider ID.",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "scheduled",
+            "in": "query",
+            "description": "Filter by scheduled status.",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "status_id",
+            "in": "query",
+            "description": "Filter by status ID.",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "start_date",
+            "in": "query",
+            "description": "Filter bookings from this date (YYYY-MM-DD).",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "description": "Filter bookings until this date (YYYY-MM-DD).",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number (defaults to 1).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "description": "Records per page (defaults to 30, max 100).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 30
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of bookings.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingListResponse"
+                },
+                "examples": {
+                  "bookingList": {
+                    "summary": "[Success] 200 OK - Booking list",
+                    "value": {
+                      "data": [
+                        {
+                          "id": 12345,
+                          "start_time": "2026-03-10T10:00:00-03:00",
+                          "end_time": "2026-03-10T10:30:00-03:00",
+                          "status_id": 1,
+                          "status": {
+                            "id": 1,
+                            "name": "Confirmed",
+                            "internal_name": "confirmed",
+                            "description": null
+                          },
+                          "service_id": 10,
+                          "service": {
+                            "id": 10,
+                            "name": "Haircut"
+                          },
+                          "service_provider_id": 5,
+                          "service_provider": {
+                            "id": 5,
+                            "public_name": "John Stylist"
+                          },
+                          "client_id": 42,
+                          "location_id": 1,
+                          "location": {
+                            "id": 1,
+                            "name": "Sucursal Providencia"
+                          },
+                          "price": "15000.0",
+                          "list_price": "15000.0",
+                          "discount": null,
+                          "notes": null,
+                          "scheduled": true,
+                          "time_resource_id": null,
+                          "company_id": 100,
+                          "sale": {
+                            "id": 8842,
+                            "status": "paid",
+                            "cart_id": 9310
+                          },
+                          "created_at": "2026-03-09T14:00:00-03:00",
+                          "updated_at": "2026-03-09T14:00:00-03:00"
+                        }
+                      ],
+                      "pagination": {
+                        "current_page": 1,
+                        "per_page": 30,
+                        "next_page": null,
+                        "prev_page": null,
+                        "total_records": 1,
+                        "total_pages": 1
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamUnavailable"
+          }
+        }
+      },
+      "post": {
+        "operationId": "createBooking",
+        "summary": "Create Booking",
+        "description": "This endpoint creates a new booking.\n\n### Important Notes\n\n- Requires `bookings:write` scope.\n- Notifications (email, SMS, WhatsApp) are disabled for bookings created via the public API.\n- The `creative_source` is automatically set to `connect`.\n\n### Errors Dictionary\n\n| **Status** | **Error** | **Detail** | **Description** |\n| --- | --- | --- | --- |\n| 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |\n| 401 | unauthorized | api_config_inactive | API access is inactive for this company. |\n| 403 | forbidden | scope_denied | API key lacks `bookings:write` scope. |\n| 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |\n| 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |\n| 502 | upstream_unavailable |  | The upstream service is unavailable. |\n",
+        "tags": [
+          "Bookings"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBookingRequest"
+              },
+              "examples": {
+                "createBooking": {
+                  "summary": "[Request] Create a booking",
+                  "value": {
+                    "start_time": "2026-03-10T10:00:00-03:00",
+                    "end_time": "2026-03-10T10:30:00-03:00",
+                    "service_id": 10,
+                    "provider_id": 5,
+                    "client_id": 42,
+                    "location_id": 1,
+                    "status_id": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Booking created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Booking"
+                },
+                "examples": {
+                  "bookingCreated": {
+                    "summary": "[Success] 201 Created - Booking created",
+                    "value": {
+                      "id": 12345,
+                      "start_time": "2026-03-10T10:00:00-03:00",
+                      "end_time": "2026-03-10T10:30:00-03:00",
+                      "status_id": 1,
+                      "status": {
+                        "id": 1,
+                        "name": "Confirmed",
+                        "internal_name": "confirmed",
+                        "description": null
+                      },
+                      "service_id": 10,
+                      "service": {
+                        "id": 10,
+                        "name": "Haircut"
+                      },
+                      "service_provider_id": 5,
+                      "service_provider": {
+                        "id": 5,
+                        "public_name": "John Stylist"
+                      },
+                      "client_id": 42,
+                      "location_id": 1,
+                      "location": {
+                        "id": 1,
+                        "name": "Sucursal Providencia"
+                      },
+                      "price": "15000.0",
+                      "list_price": "15000.0",
+                      "discount": null,
+                      "notes": null,
+                      "scheduled": true,
+                      "time_resource_id": null,
+                      "company_id": 100,
+                      "sale": null,
+                      "created_at": "2026-03-09T14:00:00-03:00",
+                      "updated_at": "2026-03-09T14:00:00-03:00"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamUnavailable"
+          }
+        }
+      }
+    },
+    "/v3/bookings/{id}": {
+      "get": {
+        "operationId": "getBooking",
+        "summary": "Get Booking",
+        "description": "This endpoint returns a single booking by ID.\n\n### Errors Dictionary\n\n| **Status** | **Error** | **Detail** | **Description** |\n| --- | --- | --- | --- |\n| 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |\n| 401 | unauthorized | api_config_inactive | API access is inactive for this company. |\n| 403 | forbidden | scope_denied | API key lacks `bookings:read` scope. |\n| 404 | not_found | booking | Booking not found. |\n| 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |\n| 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |\n| 502 | upstream_unavailable |  | The upstream service is unavailable. |\n",
+        "tags": [
+          "Bookings"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/BookingId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Booking found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Booking"
+                },
+                "examples": {
+                  "bookingFound": {
+                    "summary": "[Success] 200 OK - Booking found",
+                    "value": {
+                      "id": 12345,
+                      "start_time": "2026-03-10T10:00:00-03:00",
+                      "end_time": "2026-03-10T10:30:00-03:00",
+                      "status_id": 1,
+                      "status": {
+                        "id": 1,
+                        "name": "Confirmed",
+                        "internal_name": "confirmed",
+                        "description": null
+                      },
+                      "service_id": 10,
+                      "service": {
+                        "id": 10,
+                        "name": "Haircut"
+                      },
+                      "service_provider_id": 5,
+                      "service_provider": {
+                        "id": 5,
+                        "public_name": "John Stylist"
+                      },
+                      "client_id": 42,
+                      "location_id": 1,
+                      "location": {
+                        "id": 1,
+                        "name": "Sucursal Providencia"
+                      },
+                      "price": "15000.0",
+                      "list_price": "15000.0",
+                      "discount": null,
+                      "notes": null,
+                      "scheduled": true,
+                      "time_resource_id": null,
+                      "company_id": 100,
+                      "sale": {
+                        "id": 8842,
+                        "status": "paid",
+                        "cart_id": 9310
+                      },
+                      "created_at": "2026-03-09T14:00:00-03:00",
+                      "updated_at": "2026-03-09T14:00:00-03:00"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamUnavailable"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateBooking",
+        "summary": "Update Booking",
+        "description": "This endpoint updates an existing booking. Only provided fields are updated (partial update).\n\n### Customer policy enforcement\n\nUpdates are validated against the merchant's customer policy before being applied. If the merchant has disabled edits, the booking is too close to its start time, or it has reached its maximum number of changes, the request is rejected with `422 restricted` and the `detail` field identifies which rule tripped:\n\n| **Detail** | **Meaning** |\n| --- | --- |\n| `can_edit` | Merchant disabled edits via the customer flow. |\n| `before_edit_booking` | Booking is within the merchant's pre-start lock window (no edits allowed this close to `start_time`). |\n| `max_changes` | Booking already reached the merchant's maximum number of changes. |\n\nThese values are configured by the merchant in **[Configuraciones > Sitio web > Edici\u00f3n y cancelaci\u00f3n de reservas en l\u00ednea](https://app.agendapro.com/company_settings/bookings)**.\n\nClients integrating against this API should surface these conditions to their end users as \"the merchant does not allow this change\" rather than retrying the request.\n\n### Errors Dictionary\n\n| **Status** | **Error** | **Detail** | **Description** |\n| --- | --- | --- | --- |\n| 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |\n| 401 | unauthorized | api_config_inactive | API access is inactive for this company. |\n| 403 | forbidden | scope_denied | API key lacks `bookings:write` scope. |\n| 404 | not_found | booking | Booking not found. |\n| 422 | restricted | can_edit | Merchant has disabled edits via the customer flow. |\n| 422 | restricted | before_edit_booking | Booking is within the merchant's pre-start lock window. |\n| 422 | restricted | max_changes | Booking has reached the merchant's maximum number of changes. |\n| 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |\n| 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |\n| 502 | upstream_unavailable |  | The upstream service is unavailable. |\n",
+        "tags": [
+          "Bookings"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/BookingId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBookingRequest"
+              },
+              "examples": {
+                "rescheduleBooking": {
+                  "summary": "[Request] Reschedule a booking",
+                  "value": {
+                    "start_time": "2026-03-11T14:00:00-03:00",
+                    "end_time": "2026-03-11T14:30:00-03:00"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Booking updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Booking"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "description": "Update rejected by the merchant's customer policy.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                },
+                "examples": {
+                  "canEdit": {
+                    "summary": "[Error] 422 - Merchant disabled edits",
+                    "value": {
+                      "error": "restricted",
+                      "detail": "can_edit"
+                    }
+                  },
+                  "beforeEditBooking": {
+                    "summary": "[Error] 422 - Inside pre-start lock window",
+                    "value": {
+                      "error": "restricted",
+                      "detail": "before_edit_booking"
+                    }
+                  },
+                  "maxChanges": {
+                    "summary": "[Error] 422 - Maximum changes reached",
+                    "value": {
+                      "error": "restricted",
+                      "detail": "max_changes"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamUnavailable"
+          }
+        }
+      }
+    },
+    "/v3/bookings/{id}/cancel": {
+      "patch": {
+        "operationId": "cancelBooking",
+        "summary": "Cancel Booking",
+        "description": "This endpoint cancels a booking.\n\n### Customer policy enforcement\n\nCancellations are validated against the merchant's customer policy before being applied. If the merchant has disabled cancellations, the booking is too close to its start time, or it has reached its maximum number of changes, the request is rejected with `422 restricted` and the `detail` field identifies which rule tripped:\n\n| **Detail** | **Meaning** |\n| --- | --- |\n| `can_cancel` | Merchant disabled cancellations via the customer flow. |\n| `before_edit_booking` | Booking is within the merchant's pre-start lock window (no cancellations allowed this close to `start_time`). |\n| `max_changes` | Booking already reached the merchant's maximum number of changes. |\n\nThese values are configured by the merchant in **[Configuraciones > Sitio web > Edici\u00f3n y cancelaci\u00f3n de reservas en l\u00ednea](https://app.agendapro.com/company_settings/bookings)**.\n\nClients integrating against this API should surface these conditions to their end users as \"the merchant does not allow this cancellation\" rather than retrying the request.\n\n### Errors Dictionary\n\n| **Status** | **Error** | **Detail** | **Description** |\n| --- | --- | --- | --- |\n| 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |\n| 401 | unauthorized | api_config_inactive | API access is inactive for this company. |\n| 403 | forbidden | scope_denied | API key lacks `bookings:write` scope. |\n| 404 | not_found | booking | Booking not found. |\n| 422 | restricted | can_cancel | Merchant has disabled cancellations via the customer flow. |\n| 422 | restricted | before_edit_booking | Booking is within the merchant's pre-start lock window. |\n| 422 | restricted | max_changes | Booking has reached the merchant's maximum number of changes. |\n| 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |\n| 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |\n| 502 | upstream_unavailable |  | The upstream service is unavailable. |\n",
+        "tags": [
+          "Bookings"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/BookingId"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Booking cancelled."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "description": "Cancellation rejected by the merchant's customer policy.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                },
+                "examples": {
+                  "canCancel": {
+                    "summary": "[Error] 422 - Merchant disabled cancellations",
+                    "value": {
+                      "error": "restricted",
+                      "detail": "can_cancel"
+                    }
+                  },
+                  "beforeEditBooking": {
+                    "summary": "[Error] 422 - Inside pre-start lock window",
+                    "value": {
+                      "error": "restricted",
+                      "detail": "before_edit_booking"
+                    }
+                  },
+                  "maxChanges": {
+                    "summary": "[Error] 422 - Maximum changes reached",
+                    "value": {
+                      "error": "restricted",
+                      "detail": "max_changes"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamUnavailable"
+          }
+        }
+      }
+    },
+    "/v3/clients": {
+      "get": {
+        "operationId": "listClients",
+        "summary": "List Clients",
+        "description": "This endpoint returns a paginated list of clients for the company.\n\n### Errors Dictionary\n\n| **Status** | **Error** | **Detail** | **Description** |\n| --- | --- | --- | --- |\n| 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |\n| 401 | unauthorized | api_config_inactive | API access is inactive for this company. |\n| 403 | forbidden | scope_denied | API key lacks `clients:read` scope. |\n| 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |\n| 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |\n| 502 | upstream_unavailable |  | The upstream service is unavailable. |\n",
+        "tags": [
+          "Clients"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number (defaults to 1).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "description": "Records per page (defaults to 30, max 100).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 30
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of clients.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientListResponse"
+                },
+                "examples": {
+                  "clientList": {
+                    "summary": "[Success] 200 OK - Client list",
+                    "value": {
+                      "data": [
+                        {
+                          "id": 223190,
+                          "first_name": "Maria",
+                          "last_name": "Lopez",
+                          "email": "maria.lopez@example.com",
+                          "phone": "+56912345678",
+                          "second_phone": null,
+                          "identification_number": "12345678-9",
+                          "address": "Av. Providencia 1234",
+                          "district": "Providencia",
+                          "city": "Santiago",
+                          "region": "RM",
+                          "age": 30,
+                          "gender": 1,
+                          "birth_day": 15,
+                          "birth_month": 6,
+                          "birth_year": 1995,
+                          "record_number": "C-0001",
+                          "photo": null,
+                          "nationality": null,
+                          "phone_country": "CL",
+                          "active": true,
+                          "custom_attributes": [],
+                          "created_at": "2025-01-01T12:00:00-03:00",
+                          "updated_at": "2025-06-15T09:30:00-03:00"
+                        }
+                      ],
+                      "pagination": {
+                        "current_page": 1,
+                        "per_page": 30,
+                        "next_page": null,
+                        "prev_page": null,
+                        "total_records": 1,
+                        "total_pages": 1
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamUnavailable"
+          }
+        }
+      },
+      "post": {
+        "operationId": "createClient",
+        "summary": "Create Client",
+        "description": "This endpoint creates a new client for the company.\n\n### Important Notes\n\n- At least one of `last_name`, `email`, or `phone` is required by business logic.\n- Email is normalized to lowercase.\n- Phone must follow E.164 format.\n\n### Errors Dictionary\n\n| **Status** | **Error** | **Detail** | **Description** |\n| --- | --- | --- | --- |\n| 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |\n| 401 | unauthorized | api_config_inactive | API access is inactive for this company. |\n| 403 | forbidden | scope_denied | API key lacks `clients:write` scope. |\n| 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |\n| 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |\n| 502 | upstream_unavailable |  | The upstream service is unavailable. |\n",
+        "tags": [
+          "Clients"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateClientRequest"
+              },
+              "examples": {
+                "createClient": {
+                  "summary": "[Request] Create a client",
+                  "value": {
+                    "first_name": "Maria",
+                    "last_name": "Lopez",
+                    "email": "maria.lopez@example.com",
+                    "phone": "+56912345678"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Client created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Client"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamUnavailable"
+          }
+        }
+      }
+    },
+    "/v3/clients/quick-search": {
+      "get": {
+        "operationId": "quickSearchClients",
+        "summary": "Quick Search Clients",
+        "description": "This endpoint returns a small, ranked list of clients matching a free-text query.\nIt searches by name, email, phone, identification number, and record number, and is\nintended for type-ahead / autocomplete use cases.\n\n### Errors Dictionary\n\n| **Status** | **Error** | **Detail** | **Description** |\n| --- | --- | --- | --- |\n| 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |\n| 401 | unauthorized | api_config_inactive | API access is inactive for this company. |\n| 403 | forbidden | scope_denied | API key lacks `clients:read` scope. |\n| 400 | bad_request | missing_q | Query string `q` is required. |\n| 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |\n| 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |\n| 502 | upstream_unavailable |  | The upstream service is unavailable. |\n",
+        "tags": [
+          "Clients"
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Free-text search query (max 50 characters).",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 50,
+              "example": "maria"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of results (defaults to 10, max 25).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 25,
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ranked list of matching clients.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientQuickSearchResponse"
+                },
+                "examples": {
+                  "clientQuickSearch": {
+                    "summary": "[Success] 200 OK - Quick search results",
+                    "value": {
+                      "data": [
+                        {
+                          "id": 223190,
+                          "full_name": "Maria Lopez",
+                          "email": "maria.lopez@example.com",
+                          "phone": "+56912345678",
+                          "identification_number": "12345678-9",
+                          "record_number": "C-0001"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Query string `q` is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                },
+                "examples": {
+                  "missingQuery": {
+                    "summary": "[Error] 400 - Missing q",
+                    "value": {
+                      "error": "missing_q"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamUnavailable"
+          }
+        }
+      }
+    },
+    "/v3/clients/{id}": {
+      "get": {
+        "operationId": "getClient",
+        "summary": "Get Client",
+        "description": "This endpoint returns a single client by ID.\n\n### Errors Dictionary\n\n| **Status** | **Error** | **Detail** | **Description** |\n| --- | --- | --- | --- |\n| 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |\n| 401 | unauthorized | api_config_inactive | API access is inactive for this company. |\n| 403 | forbidden | scope_denied | API key lacks `clients:read` scope. |\n| 404 | not_found | client | Client not found. |\n| 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |\n| 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |\n| 502 | upstream_unavailable |  | The upstream service is unavailable. |\n",
+        "tags": [
+          "Clients"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ClientId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Client found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Client"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamUnavailable"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateClient",
+        "summary": "Update Client",
+        "description": "This endpoint updates an existing client. Only provided fields are updated (partial update).\n\n### Errors Dictionary\n\n| **Status** | **Error** | **Detail** | **Description** |\n| --- | --- | --- | --- |\n| 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |\n| 401 | unauthorized | api_config_inactive | API access is inactive for this company. |\n| 403 | forbidden | scope_denied | API key lacks `clients:write` scope. |\n| 404 | not_found | client | Client not found. |\n| 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |\n| 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |\n| 502 | upstream_unavailable |  | The upstream service is unavailable. |\n",
+        "tags": [
+          "Clients"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ClientId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateClientRequest"
+              },
+              "examples": {
+                "updateClient": {
+                  "summary": "[Request] Update client email",
+                  "value": {
+                    "email": "maria.new@example.com"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Client updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Client"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamUnavailable"
+          }
+        }
+      }
+    },
+    "/v3/clients/{id}/deactivate": {
+      "patch": {
+        "operationId": "deactivateClient",
+        "summary": "Deactivate Client",
+        "description": "This endpoint deactivates (soft deletes) a client.\n\n### Errors Dictionary\n\n| **Status** | **Error** | **Detail** | **Description** |\n| --- | --- | --- | --- |\n| 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |\n| 401 | unauthorized | api_config_inactive | API access is inactive for this company. |\n| 403 | forbidden | scope_denied | API key lacks `clients:write` scope. |\n| 404 | not_found | client | Client not found. |\n| 422 | unprocessable_entity | client_already_deactivated | Client is already deactivated. |\n| 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |\n| 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |\n| 502 | upstream_unavailable |  | The upstream service is unavailable. |\n",
+        "tags": [
+          "Clients"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ClientId"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Client deactivated."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "description": "Client is already deactivated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                },
+                "examples": {
+                  "alreadyDeactivated": {
+                    "summary": "[Error] 422 - Client already deactivated",
+                    "value": {
+                      "error": "client_already_deactivated"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamUnavailable"
+          }
+        }
+      }
+    },
+    "/v3/clients/{id}/custom_attributes": {
+      "get": {
+        "operationId": "listClientCustomAttributes",
+        "summary": "List Client Custom Attributes",
+        "description": "Returns the custom attribute values for a specific client. These are the values that fill the templates returned by `GET /v3/custom_attributes`.\n\n### Errors Dictionary\n\n| **Status** | **Error** | **Detail** | **Description** |\n| --- | --- | --- | --- |\n| 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |\n| 401 | unauthorized | api_config_inactive | API access is inactive for this company. |\n| 403 | forbidden | scope_denied | API key lacks `clients:read` scope. |\n| 404 | not_found | client | Client not found. |\n| 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |\n| 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |\n| 502 | upstream_unavailable |  | The upstream service is unavailable. |\n",
+        "tags": [
+          "Clients"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ClientId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Custom attributes for the client.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CustomAttribute"
+                  }
+                },
+                "examples": {
+                  "customAttributes": {
+                    "summary": "[Success] 200 OK - Custom attributes",
+                    "value": [
+                      {
+                        "id": 1,
+                        "name": "Preferred stylist",
+                        "datatype": "text",
+                        "value": "John"
+                      },
+                      {
+                        "id": 2,
+                        "name": "VIP",
+                        "datatype": "boolean",
+                        "value": "true"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamUnavailable"
+          }
+        }
+      }
+    },
+    "/v3/custom_attributes": {
+      "get": {
+        "operationId": "listCustomAttributeTemplates",
+        "summary": "List Custom Attribute Templates",
+        "description": "Returns the custom attribute templates configured for the company.\nThese define which custom attributes can be set on clients.\n\nUse template `id` values when setting `custom_attributes` on client create/update.\n\n### Errors Dictionary\n\n| **Status** | **Error** | **Detail** | **Description** |\n| --- | --- | --- | --- |\n| 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |\n| 401 | unauthorized | api_config_inactive | API access is inactive for this company. |\n| 403 | forbidden | scope_denied | API key lacks `custom_attributes:read` scope. |\n| 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |\n| 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |\n| 502 | upstream_unavailable |  | The upstream service is unavailable. |\n",
+        "tags": [
+          "Custom Attributes"
+        ],
+        "responses": {
+          "200": {
+            "description": "List of custom attribute templates.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CustomAttributeTemplate"
+                  }
+                },
+                "examples": {
+                  "templates": {
+                    "summary": "[Success] 200 OK - Custom attribute templates",
+                    "value": [
+                      {
+                        "id": 1,
+                        "name": "Preferred stylist",
+                        "datatype": "text",
+                        "order": 1,
+                        "description": "Pick your stylist",
+                        "mandatory": false,
+                        "attribute_group": {
+                          "id": 10,
+                          "name": "Preferences",
+                          "order": 1
+                        },
+                        "attribute_categories": []
+                      },
+                      {
+                        "id": 2,
+                        "name": "Hair type",
+                        "datatype": "categoric",
+                        "order": 2,
+                        "description": null,
+                        "mandatory": true,
+                        "attribute_group": null,
+                        "attribute_categories": [
+                          {
+                            "id": 100,
+                            "category": "Curly",
+                            "order": 1
+                          },
+                          {
+                            "id": 101,
+                            "category": "Straight",
+                            "order": 2
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamUnavailable"
+          }
+        }
+      }
+    },
+    "/v3/locations": {
+      "get": {
+        "operationId": "listLocations",
+        "summary": "List Locations",
+        "description": "This endpoint returns a paginated list of locations for the company.\n\n### Errors Dictionary\n\n| **Status** | **Error** | **Detail** | **Description** |\n| --- | --- | --- | --- |\n| 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |\n| 401 | unauthorized | api_config_inactive | API access is inactive for this company. |\n| 403 | forbidden | scope_denied | API key lacks `locations:read` scope. |\n| 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |\n| 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |\n| 502 | upstream_unavailable |  | The upstream service is unavailable. |\n",
+        "tags": [
+          "Locations"
+        ],
+        "parameters": [
+          {
+            "name": "active",
+            "in": "query",
+            "description": "Filter by active status.",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number (defaults to 1).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "description": "Records per page (defaults to 30, max 100).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 30
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of locations.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocationListResponse"
+                },
+                "examples": {
+                  "locationList": {
+                    "summary": "[Success] 200 OK - Location list",
+                    "value": {
+                      "data": [
+                        {
+                          "id": 1,
+                          "uuid": "loc-uuid-1",
+                          "name": "Sucursal Providencia",
+                          "active": true,
+                          "address": {
+                            "route": "Av. Providencia",
+                            "street_number": "1234",
+                            "locality": "Providencia",
+                            "administrative_area_level_1": "Regi\u00f3n Metropolitana",
+                            "country": "Chile"
+                          },
+                          "phone": "+56912345678",
+                          "email": "providencia@example.com",
+                          "latitude": -33.4255,
+                          "longitude": -70.6101,
+                          "timezone": "America/Santiago",
+                          "image": {
+                            "id": 1,
+                            "url": "https://cdn.example.com/locations/1.jpg"
+                          },
+                          "image_map": null,
+                          "company": {
+                            "id": 100,
+                            "name": "Spa Relax"
+                          },
+                          "country": {
+                            "id": 1,
+                            "name": "Chile",
+                            "timezone_name": "Santiago",
+                            "timezone_offset": "-03:00"
+                          },
+                          "times": [
+                            {
+                              "id": 1,
+                              "day_id": 1,
+                              "open": "09:00",
+                              "close": "18:00"
+                            }
+                          ],
+                          "created_at": "2025-01-01T12:00:00-03:00",
+                          "updated_at": "2025-06-15T09:30:00-03:00"
+                        }
+                      ],
+                      "pagination": {
+                        "current_page": 1,
+                        "per_page": 30,
+                        "next_page": null,
+                        "prev_page": null,
+                        "total_records": 1,
+                        "total_pages": 1
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamUnavailable"
+          }
+        }
+      }
+    },
+    "/v3/locations/{id}": {
+      "get": {
+        "operationId": "getLocation",
+        "summary": "Get Location",
+        "description": "This endpoint returns a single location by ID.\n\n### Errors Dictionary\n\n| **Status** | **Error** | **Detail** | **Description** |\n| --- | --- | --- | --- |\n| 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |\n| 401 | unauthorized | api_config_inactive | API access is inactive for this company. |\n| 403 | forbidden | scope_denied | API key lacks `locations:read` scope. |\n| 404 | not_found | location | Location not found. |\n| 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |\n| 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |\n| 502 | upstream_unavailable |  | The upstream service is unavailable. |\n",
+        "tags": [
+          "Locations"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/LocationId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Location found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Location"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamUnavailable"
+          }
+        }
+      }
+    },
+    "/v3/services": {
+      "get": {
+        "operationId": "listServices",
+        "summary": "List Services",
+        "description": "This endpoint returns a paginated list of services for the company.\n\n### Errors Dictionary\n\n| **Status** | **Error** | **Detail** | **Description** |\n| --- | --- | --- | --- |\n| 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |\n| 401 | unauthorized | api_config_inactive | API access is inactive for this company. |\n| 403 | forbidden | scope_denied | API key lacks `services:read` scope. |\n| 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |\n| 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |\n| 502 | upstream_unavailable |  | The upstream service is unavailable. |\n",
+        "tags": [
+          "Services"
+        ],
+        "parameters": [
+          {
+            "name": "provider_id",
+            "in": "query",
+            "description": "Filter by provider ID.",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number (defaults to 1).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "description": "Records per page (defaults to 30, max 100).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 30
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of services.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceListResponse"
+                },
+                "examples": {
+                  "serviceList": {
+                    "summary": "[Success] 200 OK - Service list",
+                    "value": {
+                      "data": [
+                        {
+                          "id": 10,
+                          "uuid": "svc-uuid-1",
+                          "name": "Corte clasico",
+                          "active": true,
+                          "price": "15000",
+                          "discount": "0.0",
+                          "has_discount": false,
+                          "duration": 30,
+                          "description": "Classic haircut service",
+                          "type": "service",
+                          "online_booking": true,
+                          "online_payment": {
+                            "mode": "NOT_AVAILABLE",
+                            "amount": null
+                          },
+                          "outcall": false,
+                          "is_video": false,
+                          "category": {
+                            "id": 1,
+                            "name": "Hair"
+                          },
+                          "image": {
+                            "id": 55,
+                            "url": "https://cdn.example.com/services/10/img1.jpg"
+                          },
+                          "location_id": 1,
+                          "company_id": 100,
+                          "favorite": true,
+                          "created_at": "2025-01-01T12:00:00-03:00",
+                          "updated_at": "2025-06-15T09:30:00-03:00"
+                        }
+                      ],
+                      "pagination": {
+                        "current_page": 1,
+                        "per_page": 30,
+                        "next_page": null,
+                        "prev_page": null,
+                        "total_records": 1,
+                        "total_pages": 1
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamUnavailable"
+          }
+        }
+      }
+    },
+    "/v3/services/{id}": {
+      "get": {
+        "operationId": "getService",
+        "summary": "Get Service",
+        "description": "This endpoint returns a single service by ID.\n\n### Errors Dictionary\n\n| **Status** | **Error** | **Detail** | **Description** |\n| --- | --- | --- | --- |\n| 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |\n| 401 | unauthorized | api_config_inactive | API access is inactive for this company. |\n| 403 | forbidden | scope_denied | API key lacks `services:read` scope. |\n| 404 | not_found | service | Service not found. |\n| 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |\n| 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |\n| 502 | upstream_unavailable |  | The upstream service is unavailable. |\n",
+        "tags": [
+          "Services"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ServiceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Service found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamUnavailable"
+          }
+        }
+      }
+    },
+    "/v3/categories": {
+      "get": {
+        "operationId": "listCategories",
+        "summary": "List Categories",
+        "description": "This endpoint returns a paginated list of service categories for the company,\nordered by the `order` field ascending (ties broken by `id` ascending).\n\n### Errors Dictionary\n\n| **Status** | **Error** | **Detail** | **Description** |\n| --- | --- | --- | --- |\n| 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |\n| 401 | unauthorized | api_config_inactive | API access is inactive for this company. |\n| 403 | forbidden | scope_denied | API key lacks `categories:read` scope. |\n| 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |\n| 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |\n| 502 | upstream_unavailable |  | The upstream service is unavailable. |\n",
+        "tags": [
+          "Services"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number (defaults to 1).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "description": "Records per page (defaults to 30, max 100).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 30
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of categories.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryListResponse"
+                },
+                "examples": {
+                  "categoryList": {
+                    "summary": "[Success] 200 OK - Category list",
+                    "value": {
+                      "data": [
+                        {
+                          "id": 1,
+                          "name": "Cortes",
+                          "order": 1,
+                          "created_at": "2025-01-15T10:30:00-03:00",
+                          "updated_at": "2025-01-15T10:30:00-03:00"
+                        },
+                        {
+                          "id": 2,
+                          "name": "Coloracion",
+                          "order": 2,
+                          "created_at": "2025-01-15T10:30:00-03:00",
+                          "updated_at": "2025-01-15T10:30:00-03:00"
+                        }
+                      ],
+                      "pagination": {
+                        "current_page": 1,
+                        "per_page": 30,
+                        "next_page": null,
+                        "prev_page": null,
+                        "total_records": 2,
+                        "total_pages": 1
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamUnavailable"
+          }
+        }
+      }
+    },
+    "/v3/providers": {
+      "get": {
+        "operationId": "listProviders",
+        "summary": "List Providers",
+        "description": "This endpoint returns a paginated list of service providers for the company.\n\n### Errors Dictionary\n\n| **Status** | **Error** | **Detail** | **Description** |\n| --- | --- | --- | --- |\n| 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |\n| 401 | unauthorized | api_config_inactive | API access is inactive for this company. |\n| 403 | forbidden | scope_denied | API key lacks `providers:read` scope. |\n| 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |\n| 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |\n| 502 | upstream_unavailable |  | The upstream service is unavailable. |\n",
+        "tags": [
+          "Providers"
+        ],
+        "parameters": [
+          {
+            "name": "location_ids",
+            "in": "query",
+            "description": "Filter by location IDs (comma-separated).",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              }
+            },
+            "explode": true
+          },
+          {
+            "name": "service_ids",
+            "in": "query",
+            "description": "Filter by service IDs (comma-separated).",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              }
+            },
+            "explode": true
+          },
+          {
+            "name": "public_name",
+            "in": "query",
+            "description": "Filter by provider public name (partial match).",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "active",
+            "in": "query",
+            "description": "Filter by active status.",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "sort_by",
+            "in": "query",
+            "description": "Field to sort by.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "order_by",
+            "in": "query",
+            "description": "Sort order (`asc` or `desc`).",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number (defaults to 1).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "description": "Records per page (defaults to 30, max 100).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 30
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of providers.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderListResponse"
+                },
+                "examples": {
+                  "providerList": {
+                    "summary": "[Success] 200 OK - Provider list",
+                    "value": {
+                      "data": [
+                        {
+                          "id": 5,
+                          "company_id": 100,
+                          "location_id": 1,
+                          "active": true,
+                          "public_name": "John Stylist",
+                          "online_booking": true,
+                          "images": [],
+                          "provider_open_days": true,
+                          "provider_times": [
+                            {
+                              "day": "monday",
+                              "start_time": "09:00",
+                              "end_time": "18:00",
+                              "breaks": [
+                                {
+                                  "start_time": "13:00",
+                                  "end_time": "14:00"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ],
+                      "pagination": {
+                        "current_page": 1,
+                        "per_page": 30,
+                        "next_page": null,
+                        "prev_page": null,
+                        "total_records": 1,
+                        "total_pages": 1
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamUnavailable"
+          }
+        }
+      }
+    },
+    "/v3/providers/{id}": {
+      "get": {
+        "operationId": "getProvider",
+        "summary": "Get Provider",
+        "description": "This endpoint returns a single service provider by ID.\n\n### Errors Dictionary\n\n| **Status** | **Error** | **Detail** | **Description** |\n| --- | --- | --- | --- |\n| 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |\n| 401 | unauthorized | api_config_inactive | API access is inactive for this company. |\n| 403 | forbidden | scope_denied | API key lacks `providers:read` scope. |\n| 404 | not_found | provider | Provider not found. |\n| 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |\n| 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |\n| 502 | upstream_unavailable |  | The upstream service is unavailable. |\n",
+        "tags": [
+          "Providers"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProviderId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Provider found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Provider"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamUnavailable"
+          }
+        }
+      }
+    },
+    "/v3/sales": {
+      "get": {
+        "operationId": "listSales",
+        "summary": "List Sales",
+        "description": "This endpoint returns a paginated list of sales for the company.\n\n### Important Notes\n\n- Requires `sales:read` scope.\n- Sales are read-only via the public API.\n\n### Errors Dictionary\n\n| **Status** | **Error** | **Detail** | **Description** |\n| --- | --- | --- | --- |\n| 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |\n| 401 | unauthorized | api_config_inactive | API access is inactive for this company. |\n| 403 | forbidden | scope_denied | API key lacks `sales:read` scope. |\n| 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |\n| 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |\n| 502 | upstream_unavailable |  | The upstream service is unavailable. |\n",
+        "tags": [
+          "Sales"
+        ],
+        "parameters": [
+          {
+            "name": "paid_at_start",
+            "in": "query",
+            "description": "Filter by paid date range start (inclusive). Format: `YYYY-MM-DD`.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "paid_at_end",
+            "in": "query",
+            "description": "Filter by paid date range end (inclusive). Format: `YYYY-MM-DD`.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "location_id",
+            "in": "query",
+            "description": "Filter by location ID.",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "client_id",
+            "in": "query",
+            "description": "Filter by client ID.",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "description": "Records per page.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of sales.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SaleListResponse"
+                },
+                "examples": {
+                  "saleList": {
+                    "summary": "[Success] 200 OK - Sale list",
+                    "value": {
+                      "pagination": {
+                        "current_page": 1,
+                        "per_page": 30,
+                        "next_page": null,
+                        "prev_page": null,
+                        "total_records": 2,
+                        "total_pages": 1
+                      },
+                      "data": [
+                        {
+                          "id": 500,
+                          "cart_id": 8842,
+                          "client_id": 223190,
+                          "pending_amount": "0.0",
+                          "paid_amount": "50.0",
+                          "status": "paid",
+                          "paid_at": "2025-03-15T10:30:00Z",
+                          "location": {
+                            "id": 1,
+                            "name": "Main Branch"
+                          },
+                          "transactions": [
+                            {
+                              "id": 300,
+                              "amount": "50.0",
+                              "created_at": "2025-03-15T10:30:00Z",
+                              "paid_at": "2025-03-15T10:30:00Z",
+                              "payment_method": {
+                                "id": 10,
+                                "type": "CompanyPaymentMethod",
+                                "name": "Online Payment"
+                              }
+                            }
+                          ],
+                          "created_at": "2025-03-15T10:00:00Z",
+                          "updated_at": "2025-03-15T10:30:00Z"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamUnavailable"
+          }
+        }
+      }
+    },
+    "/v3/sales/{id}": {
+      "get": {
+        "operationId": "getSale",
+        "summary": "Get Sale",
+        "description": "This endpoint returns a single sale by ID.\n\n### Errors Dictionary\n\n| **Status** | **Error** | **Detail** | **Description** |\n| --- | --- | --- | --- |\n| 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |\n| 401 | unauthorized | api_config_inactive | API access is inactive for this company. |\n| 403 | forbidden | scope_denied | API key lacks `sales:read` scope. |\n| 404 | not_found | sale | Sale not found. |\n| 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |\n| 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |\n| 502 | upstream_unavailable |  | The upstream service is unavailable. |\n",
+        "tags": [
+          "Sales"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/SaleId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sale found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Sale"
+                },
+                "examples": {
+                  "saleFound": {
+                    "summary": "[Success] 200 OK - Sale found",
+                    "value": {
+                      "id": 500,
+                      "cart_id": 8842,
+                      "pending_amount": "0.0",
+                      "paid_amount": "50.0",
+                      "status": "paid",
+                      "paid_at": "2025-03-15T10:30:00Z",
+                      "location": {
+                        "id": 1,
+                        "name": "Main Branch"
+                      },
+                      "transactions": [
+                        {
+                          "id": 300,
+                          "amount": "50.0",
+                          "created_at": "2025-03-15T10:30:00Z",
+                          "paid_at": "2025-03-15T10:30:00Z",
+                          "payment_method": {
+                            "id": 10,
+                            "type": "CompanyPaymentMethod",
+                            "name": "Online Payment"
+                          }
+                        }
+                      ],
+                      "created_at": "2025-03-15T10:00:00Z",
+                      "updated_at": "2025-03-15T10:30:00Z"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamUnavailable"
+          }
+        }
+      }
+    },
+    "/v3/carts": {
+      "post": {
+        "operationId": "createCart",
+        "summary": "Create Cart",
+        "description": "Creates a shopping cart. The cart is the first step of the online payment\nflow: add items, then create a payment request on the cart to obtain a\ncheckout URL.\n\n### Important Notes\n\n- Requires `carts:write` scope.\n- **Online payments must be enabled for the company** to complete the flow. Carts can be created regardless, but payment request creation fails when online payments are disabled.\n- The cart always belongs to the authenticated company; any `company_id` sent in the body is ignored.\n- To sell a service and book it in the same flow, send an item with `item_type: \"service\"` and a single instance `{ \"instance_type\": \"booking\", \"reference_id\": null, \"data\": { \"start_time\": \"...\", \"provider_id\": ... } }`. The booking is created automatically when the payment request is created, and released automatically if the payment request expires or is cancelled.\n- `data.start_time` must be an ISO 8601 datetime in **UTC** (`Z` or `+00:00`, e.g. `2026-08-01T13:00:00Z`). Other offsets are accepted here but rejected when the booking is reserved at payment-request time (`invalid_start_time`).\n- `data.creative_source` cannot be set: it is always `connect` for the public API (any value sent is overridden).\n- Carts expire after 24 hours.\n- Item validation errors (400/422) from platform-sales are passed through unchanged; see the platform-sales carts documentation for the full dictionary.\n- Business errors proxied from platform-sales use legacy single-key codes (e.g. `cart_not_found`, `invalid_start_time`, `creative_source_not_public`) rather than the `{error, detail}` shape used by connect-level errors (auth, scope, rate limit).\n\n### Errors Dictionary\n\n| **Status** | **Error** | **Detail** | **Description** |\n| --- | --- | --- | --- |\n| 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |\n| 401 | unauthorized | api_config_inactive | API access is inactive for this company. |\n| 403 | forbidden | scope_denied | API key lacks `carts:write` scope. |\n| 400, 422 | *(upstream)* |  | Item validation errors from platform-sales are passed through with legacy single-key codes (e.g. `item_invalid_type`, `invalid_start_time`, `creative_source_not_public`); see the platform-sales carts documentation for the full list. |\n| 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |\n| 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |\n| 502 | upstream_unavailable |  | The upstream service is unavailable. |\n",
+        "tags": [
+          "Carts"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CartInput"
+              },
+              "examples": {
+                "serviceWithBooking": {
+                  "summary": "Service item with on-demand booking",
+                  "value": {
+                    "client_id": 223190,
+                    "location_id": 1,
+                    "items": [
+                      {
+                        "item_id": 10,
+                        "item_type": "service",
+                        "unit_price": "20000",
+                        "quantity": 1,
+                        "instances": [
+                          {
+                            "instance_type": "booking",
+                            "reference_id": null,
+                            "data": {
+                              "start_time": "2026-08-01T10:00:00Z",
+                              "provider_id": 5
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Cart created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Cart"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamUnavailable"
+          }
+        }
+      }
+    },
+    "/v3/carts/{id}": {
+      "get": {
+        "operationId": "getCart",
+        "summary": "Get Cart",
+        "description": "Returns a single cart by ID. Only carts belonging to the authenticated\ncompany are visible; other carts return 404.\n\n### Errors Dictionary\n\n| **Status** | **Error** | **Detail** | **Description** |\n| --- | --- | --- | --- |\n| 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |\n| 401 | unauthorized | api_config_inactive | API access is inactive for this company. |\n| 403 | forbidden | scope_denied | API key lacks `carts:read` scope. |\n| 404 | cart_not_found |  | Cart not found for this company. |\n| 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |\n| 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |\n| 502 | upstream_unavailable |  | The upstream service is unavailable. |\n",
+        "tags": [
+          "Carts"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CartId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cart found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Cart"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamUnavailable"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateCart",
+        "summary": "Update Cart",
+        "description": "Updates a cart's items or client. Only carts belonging to the\nauthenticated company can be updated; other carts return 404.\n\n### Important Notes\n\n- Requires `carts:write` scope.\n- Sending `items` replaces the full items array.\n- Any payment request in `pending` status on the cart is cancelled automatically before applying the update, and on-demand bookings reserved by it are released.\n- The cart must not be expired and must not have paid or partially paid sales.\n- Item validation errors (400/422) from platform-sales are passed through unchanged.\n\n### Errors Dictionary\n\n| **Status** | **Error** | **Detail** | **Description** |\n| --- | --- | --- | --- |\n| 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |\n| 401 | unauthorized | api_config_inactive | API access is inactive for this company. |\n| 403 | forbidden | scope_denied | API key lacks `carts:write` scope. |\n| 404 | cart_not_found |  | Cart not found for this company. |\n| 422 | cart_expired |  | The cart has expired (older than 24 hours). |\n| 422 | cart_paid |  | The cart already has a paid sale. |\n| 400, 422 | *(upstream)* |  | Item validation errors from platform-sales are passed through with legacy single-key codes (e.g. `item_invalid_type`, `invalid_start_time`, `creative_source_not_public`); see the platform-sales carts documentation for the full list. |\n| 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |\n| 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |\n| 502 | upstream_unavailable |  | The upstream service is unavailable. |\n",
+        "tags": [
+          "Carts"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CartId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CartUpdateInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Cart updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Cart"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamUnavailable"
+          }
+        }
+      }
+    },
+    "/v3/carts/{id}/payment_requests": {
+      "post": {
+        "operationId": "createPaymentRequest",
+        "summary": "Create Payment Request (online checkout)",
+        "description": "Creates an online payment request for the cart and returns a checkout URL\nin `params.checkout_url`. Share that URL with the end customer to collect\nthe payment.\n\n### Important Notes\n\n- Requires `carts:write` scope.\n- **Online payments must be enabled for the company**; otherwise the request fails.\n- The payment channel is always `online`; it cannot be selected through the public API.\n- Booking reservation errors proxied from platform-sales use legacy single-key codes (e.g. `company_payments_disabled`, `invalid_start_time`, `booking_already_sold`), not the `{error, detail}` shape.\n- The payment request always covers the full cart total.\n- When the cart contains service items with on-demand booking instances, the bookings are created and reserved at this point, and `params.expires_at` is set (about 15 minutes): if the payment is not completed by then, the payment request expires and the reserved bookings are released automatically.\n- Creating a new payment request on a cart cancels any previous `pending` one.\n\n### Errors Dictionary\n\n| **Status** | **Error** | **Detail** | **Description** |\n| --- | --- | --- | --- |\n| 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |\n| 401 | unauthorized | api_config_inactive | API access is inactive for this company. |\n| 403 | forbidden | scope_denied | API key lacks `carts:write` scope. |\n| 404 | cart_not_found |  | Cart not found for this company. |\n| 422 | company_payments_disabled |  | Online payments are not enabled for the company or the cart items are not payable online. |\n| 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |\n| 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |\n| 502 | upstream_unavailable |  | The upstream service is unavailable. |\n",
+        "tags": [
+          "Payment Requests"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CartId"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Payment request created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentRequest"
+                },
+                "examples": {
+                  "created": {
+                    "summary": "[Success] 201 Created - Online payment request",
+                    "value": {
+                      "id": 900,
+                      "uuid": "550e8400-e29b-41d4-a716-446655440000",
+                      "amount": "20000.0",
+                      "status": "pending",
+                      "channel": "online",
+                      "params": {
+                        "checkout_url": "https://pay.agendapro.com/checkout/abc123",
+                        "expires_at": "2026-08-01T10:15:00Z"
+                      },
+                      "created_at": "2026-08-01T10:00:00Z",
+                      "updated_at": "2026-08-01T10:00:00Z"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamUnavailable"
+          }
+        }
+      }
+    },
+    "/v3/payment_requests/{id}/cancel": {
+      "patch": {
+        "operationId": "cancelPaymentRequest",
+        "summary": "Cancel Payment Request",
+        "description": "Cancels a pending payment request. Bookings that were reserved when the\npayment request was created are released immediately instead of waiting\nfor the expiration timeout. Use this when the customer abandons the\ncheckout or the cart changes.\n\n### Errors Dictionary\n\n| **Status** | **Error** | **Detail** | **Description** |\n| --- | --- | --- | --- |\n| 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |\n| 401 | unauthorized | api_config_inactive | API access is inactive for this company. |\n| 403 | forbidden | scope_denied | API key lacks `payment_requests:write` scope. |\n| 404 | payment_request_not_found |  | Payment request not found for this company. |\n| 422 | payment_request_invalid_status |  | The payment request is not in `pending` status. |\n| 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |\n| 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |\n| 502 | upstream_unavailable |  | The upstream service is unavailable. |\n",
+        "tags": [
+          "Payment Requests"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PaymentRequestId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payment request cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentRequest"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamUnavailable"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "API key issued per company. Pass as Authorization: Bearer <key>."
+      }
+    },
+    "parameters": {
+      "BookingId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "Booking unique identifier.",
+        "schema": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
+        }
+      },
+      "ClientId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "Client unique identifier.",
+        "schema": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
+        }
+      },
+      "LocationId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "Location unique identifier.",
+        "schema": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
+        }
+      },
+      "ServiceId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "Service unique identifier.",
+        "schema": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
+        }
+      },
+      "ProviderId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "Provider unique identifier.",
+        "schema": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
+        }
+      },
+      "SaleId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "Sale unique identifier.",
+        "schema": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
+        }
+      },
+      "CartId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "Cart unique identifier.",
+        "schema": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
+        }
+      },
+      "PaymentRequestId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "Payment request unique identifier.",
+        "schema": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
+        }
+      }
+    },
+    "schemas": {
+      "Booking": {
+        "type": "object",
+        "description": "Booking resource (filtered for public API).",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unique booking ID.",
+            "example": 12345
+          },
+          "start_time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Booking start time."
+          },
+          "end_time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Booking end time."
+          },
+          "status_id": {
+            "type": "integer",
+            "description": "Status ID.",
+            "example": 1
+          },
+          "status": {
+            "$ref": "#/components/schemas/BookingStatus"
+          },
+          "service_id": {
+            "type": "integer",
+            "description": "Service ID.",
+            "example": 10
+          },
+          "service": {
+            "$ref": "#/components/schemas/BookingService"
+          },
+          "service_provider_id": {
+            "type": "integer",
+            "description": "Service provider ID.",
+            "example": 5
+          },
+          "service_provider": {
+            "$ref": "#/components/schemas/BookingServiceProvider"
+          },
+          "client_id": {
+            "type": "integer",
+            "description": "Client ID.",
+            "example": 42
+          },
+          "location_id": {
+            "type": "integer",
+            "description": "Location ID.",
+            "example": 1
+          },
+          "price": {
+            "type": "string",
+            "description": "Booking price.",
+            "example": "15000.0"
+          },
+          "list_price": {
+            "type": "string",
+            "description": "Original list price.",
+            "example": "15000.0"
+          },
+          "discount": {
+            "type": "string",
+            "nullable": true,
+            "description": "Discount percentage.",
+            "example": "15.5"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true,
+            "description": "Booking notes."
+          },
+          "scheduled": {
+            "type": "boolean",
+            "description": "Whether the booking is scheduled.",
+            "example": true
+          },
+          "time_resource_id": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Time resource ID."
+          },
+          "company_id": {
+            "type": "integer",
+            "description": "Company ID.",
+            "example": 100
+          },
+          "sale": {
+            "$ref": "#/components/schemas/BookingSale"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Creation timestamp."
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Last update timestamp."
+          }
+        },
+        "required": [
+          "id",
+          "start_time",
+          "end_time",
+          "status_id",
+          "status",
+          "service_id",
+          "service",
+          "service_provider_id",
+          "service_provider",
+          "client_id",
+          "location_id",
+          "price",
+          "list_price",
+          "discount",
+          "notes",
+          "scheduled",
+          "time_resource_id",
+          "company_id",
+          "sale",
+          "created_at",
+          "updated_at"
+        ]
+      },
+      "BookingSale": {
+        "type": "object",
+        "nullable": true,
+        "description": "Sale covering this booking. For bookings covered by a membership plan, this is the plan's sale, which may cover several bookings.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Sale ID.",
+            "example": 8842
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "partially_paid",
+              "paid",
+              "canceled",
+              "refunded"
+            ],
+            "description": "Sale status.",
+            "example": "paid"
+          },
+          "cart_id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Cart the sale was created from.",
+            "example": 9310
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "cart_id"
+        ]
+      },
+      "BookingStatus": {
+        "type": "object",
+        "description": "Booking status.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Confirmed"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "BookingService": {
+        "type": "object",
+        "description": "Embedded service summary.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 10
+          },
+          "name": {
+            "type": "string",
+            "example": "Haircut"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "BookingServiceProvider": {
+        "type": "object",
+        "description": "Embedded service provider summary.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 5
+          },
+          "public_name": {
+            "type": "string",
+            "example": "John Stylist"
+          }
+        },
+        "required": [
+          "id",
+          "public_name"
+        ]
+      },
+      "BookingListResponse": {
+        "type": "object",
+        "description": "Paginated booking list response.",
+        "properties": {
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Booking"
+            }
+          }
+        },
+        "required": [
+          "pagination",
+          "data"
+        ]
+      },
+      "CreateBookingRequest": {
+        "type": "object",
+        "description": "Request body for creating a booking.",
+        "properties": {
+          "start_time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Booking start time."
+          },
+          "end_time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Booking end time. Calculated from start_time + service duration if not provided."
+          },
+          "service_id": {
+            "type": "integer",
+            "description": "Service ID.",
+            "example": 10
+          },
+          "provider_id": {
+            "type": "integer",
+            "description": "Service provider ID.",
+            "example": 5
+          },
+          "client_id": {
+            "type": "integer",
+            "description": "Client ID.",
+            "example": 42
+          },
+          "location_id": {
+            "type": "integer",
+            "description": "Location ID.",
+            "example": 1
+          },
+          "status_id": {
+            "type": "integer",
+            "description": "Booking status ID. Must be a non-cancelled status.",
+            "example": 1
+          },
+          "price": {
+            "type": "string",
+            "description": "Booking price. Defaults to service price if not provided.",
+            "example": "15000.0"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true,
+            "description": "Booking notes."
+          },
+          "time_resource_id": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Time resource ID. Required if the service requires a time resource."
+          }
+        },
+        "required": [
+          "start_time",
+          "service_id",
+          "provider_id",
+          "client_id",
+          "location_id",
+          "status_id"
+        ]
+      },
+      "UpdateBookingRequest": {
+        "type": "object",
+        "description": "Request body for updating a booking (partial update).",
+        "properties": {
+          "start_time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Booking start time."
+          },
+          "end_time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Booking end time."
+          },
+          "service_id": {
+            "type": "integer",
+            "description": "Service ID."
+          },
+          "provider_id": {
+            "type": "integer",
+            "description": "Service provider ID."
+          },
+          "client_id": {
+            "type": "integer",
+            "description": "Client ID."
+          },
+          "location_id": {
+            "type": "integer",
+            "description": "Location ID."
+          },
+          "status_id": {
+            "type": "integer",
+            "description": "Booking status ID. Cannot set to cancelled (use cancel endpoint)."
+          },
+          "price": {
+            "type": "string",
+            "description": "Booking price."
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true,
+            "description": "Booking notes."
+          },
+          "time_resource_id": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Time resource ID."
+          }
+        }
+      },
+      "AvailableSlot": {
+        "type": "object",
+        "description": "A single available booking slot.",
+        "properties": {
+          "start_time": {
+            "type": "string",
+            "description": "Slot start time (HH:MM).",
+            "example": "09:00"
+          },
+          "end_time": {
+            "type": "string",
+            "description": "Slot end time (HH:MM).",
+            "example": "09:30"
+          },
+          "provider_id": {
+            "type": "integer",
+            "description": "Provider ID for this slot.",
+            "example": 12964
+          },
+          "provider_name": {
+            "type": "string",
+            "description": "Provider display name.",
+            "example": "Dobby"
+          }
+        }
+      },
+      "AvailableSlotsMetadata": {
+        "type": "object",
+        "description": "Metadata summarising the available slots query.",
+        "properties": {
+          "location_id": {
+            "type": "integer",
+            "description": "Location ID queried.",
+            "example": 3257
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "description": "Date queried (YYYY-MM-DD).",
+            "example": "2026-04-08"
+          },
+          "service_id": {
+            "type": "integer",
+            "description": "Service ID queried (if provided).",
+            "example": 3698
+          },
+          "duration": {
+            "type": "integer",
+            "description": "Service duration in minutes.",
+            "example": 30
+          },
+          "slots_count": {
+            "type": "integer",
+            "description": "Total number of slots returned.",
+            "example": 22
+          }
+        }
+      },
+      "Client": {
+        "type": "object",
+        "description": "Client resource (filtered for public API).",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unique client ID.",
+            "example": 223190
+          },
+          "first_name": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Client first name.",
+            "example": "Maria"
+          },
+          "last_name": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 255,
+            "description": "Client last name.",
+            "example": "Lopez"
+          },
+          "email": {
+            "type": "string",
+            "description": "Client email (normalized to lowercase).",
+            "example": "maria.lopez@example.com"
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 255,
+            "description": "Phone number in E.164 format.",
+            "example": "+56912345678"
+          },
+          "second_phone": {
+            "type": "string",
+            "nullable": true,
+            "description": "Secondary phone number."
+          },
+          "identification_number": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 255,
+            "description": "National identification number.",
+            "example": "12345678-9"
+          },
+          "address": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 255,
+            "description": "Street address.",
+            "example": "Av. Providencia 1234"
+          },
+          "district": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 255,
+            "description": "District or neighborhood.",
+            "example": "Providencia"
+          },
+          "city": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 255,
+            "description": "City.",
+            "example": "Santiago"
+          },
+          "region": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Region or state.",
+            "example": "RM"
+          },
+          "age": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Client age.",
+            "example": 30
+          },
+          "gender": {
+            "type": "integer",
+            "enum": [
+              0,
+              1,
+              2
+            ],
+            "description": "Gender: 0 = other, 1 = female, 2 = male.",
+            "example": 1
+          },
+          "birth_day": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Day of birth.",
+            "example": 15
+          },
+          "birth_month": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Month of birth.",
+            "example": 6
+          },
+          "birth_year": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Year of birth.",
+            "example": 1995
+          },
+          "record_number": {
+            "type": "string",
+            "nullable": true,
+            "description": "Client record number (unique per company).",
+            "example": "C-0001"
+          },
+          "photo": {
+            "type": "string",
+            "nullable": true,
+            "description": "Client photo URL."
+          },
+          "nationality": {
+            "type": "string",
+            "nullable": true,
+            "description": "Client nationality."
+          },
+          "phone_country": {
+            "type": "string",
+            "nullable": true,
+            "description": "Phone country code (ISO 3166-1 alpha-2).",
+            "example": "CL"
+          },
+          "active": {
+            "type": "boolean",
+            "description": "Whether the client is active.",
+            "example": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Creation timestamp."
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Last update timestamp."
+          }
+        },
+        "required": [
+          "id",
+          "first_name",
+          "last_name",
+          "email",
+          "phone",
+          "second_phone",
+          "identification_number",
+          "address",
+          "district",
+          "city",
+          "region",
+          "age",
+          "gender",
+          "birth_day",
+          "birth_month",
+          "birth_year",
+          "record_number",
+          "photo",
+          "nationality",
+          "phone_country",
+          "active",
+          "created_at",
+          "updated_at"
+        ]
+      },
+      "ClientListResponse": {
+        "type": "object",
+        "description": "Paginated client list response.",
+        "properties": {
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Client"
+            }
+          }
+        },
+        "required": [
+          "pagination",
+          "data"
+        ]
+      },
+      "ClientQuickSearchResult": {
+        "type": "object",
+        "description": "A single client returned by quick search.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Client ID.",
+            "example": 223190
+          },
+          "full_name": {
+            "type": "string",
+            "description": "Client full name (first and last name combined).",
+            "example": "Maria Lopez"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "nullable": true,
+            "description": "Client email.",
+            "example": "maria.lopez@example.com"
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true,
+            "description": "Client phone in E.164 format.",
+            "example": "+56912345678"
+          },
+          "identification_number": {
+            "type": "string",
+            "nullable": true,
+            "description": "National identification number.",
+            "example": "12345678-9"
+          },
+          "record_number": {
+            "type": "string",
+            "nullable": true,
+            "description": "Internal record number.",
+            "example": "C-0001"
+          }
+        }
+      },
+      "ClientQuickSearchResponse": {
+        "type": "object",
+        "description": "Quick search client list response.",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClientQuickSearchResult"
+            }
+          }
+        },
+        "required": [
+          "data"
+        ]
+      },
+      "CreateClientRequest": {
+        "type": "object",
+        "description": "Request body for creating a client.",
+        "properties": {
+          "first_name": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Client first name.",
+            "example": "Maria"
+          },
+          "last_name": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Client last name.",
+            "example": "Lopez"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 255,
+            "description": "Client email.",
+            "example": "maria.lopez@example.com"
+          },
+          "identification_number": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "National identification number."
+          },
+          "phone": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Phone number in E.164 format.",
+            "example": "+56912345678"
+          },
+          "address": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Street address."
+          },
+          "district": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "District or neighborhood."
+          },
+          "city": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "City."
+          },
+          "region": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Region or state."
+          },
+          "age": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Client age."
+          },
+          "gender": {
+            "type": "integer",
+            "enum": [
+              0,
+              1,
+              2
+            ],
+            "description": "Gender: 0 = other, 1 = female, 2 = male."
+          },
+          "birth_day": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Day of birth."
+          },
+          "birth_month": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Month of birth."
+          },
+          "birth_year": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Year of birth."
+          },
+          "custom_attributes": {
+            "type": "array",
+            "description": "Custom attribute values to set.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "description": "Custom attribute definition ID."
+                },
+                "value": {
+                  "description": "Attribute value (type depends on the attribute datatype)."
+                }
+              },
+              "required": [
+                "id",
+                "value"
+              ]
+            }
+          }
+        },
+        "required": [
+          "first_name"
+        ]
+      },
+      "UpdateClientRequest": {
+        "type": "object",
+        "description": "Request body for updating a client (partial update).",
+        "properties": {
+          "first_name": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Client first name."
+          },
+          "last_name": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Client last name."
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 255,
+            "description": "Client email."
+          },
+          "identification_number": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "National identification number."
+          },
+          "phone": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Phone number in E.164 format."
+          },
+          "address": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Street address."
+          },
+          "district": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "District or neighborhood."
+          },
+          "city": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "City."
+          },
+          "region": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Region or state."
+          },
+          "age": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Client age."
+          },
+          "gender": {
+            "type": "integer",
+            "enum": [
+              0,
+              1,
+              2
+            ],
+            "description": "Gender: 0 = other, 1 = female, 2 = male."
+          },
+          "birth_day": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Day of birth."
+          },
+          "birth_month": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Month of birth."
+          },
+          "birth_year": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Year of birth."
+          },
+          "custom_attributes": {
+            "type": "array",
+            "description": "Custom attribute values to update.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "description": "Custom attribute definition ID."
+                },
+                "value": {
+                  "description": "Attribute value."
+                }
+              },
+              "required": [
+                "id",
+                "value"
+              ]
+            }
+          }
+        }
+      },
+      "CustomAttribute": {
+        "type": "object",
+        "description": "Client custom attribute value.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Custom attribute definition ID.",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "description": "Attribute name.",
+            "example": "Preferred stylist"
+          },
+          "datatype": {
+            "type": "string",
+            "enum": [
+              "boolean",
+              "categoric",
+              "date",
+              "datetime",
+              "file",
+              "float",
+              "integer",
+              "text",
+              "textarea"
+            ],
+            "description": "Attribute data type.",
+            "example": "text"
+          },
+          "value": {
+            "type": "string",
+            "nullable": true,
+            "description": "Attribute value (as string).",
+            "example": "John"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "datatype"
+        ]
+      },
+      "CustomAttributeTemplate": {
+        "type": "object",
+        "description": "Custom attribute template (company-level definition).",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Template ID. Use this when setting custom_attributes on clients.",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "description": "Attribute name.",
+            "example": "Preferred stylist"
+          },
+          "datatype": {
+            "type": "string",
+            "enum": [
+              "boolean",
+              "categoric",
+              "date",
+              "datetime",
+              "file",
+              "float",
+              "integer",
+              "text",
+              "textarea"
+            ],
+            "description": "Attribute data type.",
+            "example": "text"
+          },
+          "order": {
+            "type": "integer",
+            "description": "Display order.",
+            "example": 1
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "description": "Attribute description.",
+            "example": "Pick your stylist"
+          },
+          "mandatory": {
+            "type": "boolean",
+            "description": "Whether the attribute is required.",
+            "example": false
+          },
+          "attribute_group": {
+            "nullable": true,
+            "$ref": "#/components/schemas/AttributeGroup"
+          },
+          "attribute_categories": {
+            "type": "array",
+            "description": "Available categories (only for categoric datatype).",
+            "items": {
+              "$ref": "#/components/schemas/AttributeCategory"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "datatype",
+          "order",
+          "mandatory"
+        ]
+      },
+      "AttributeGroup": {
+        "type": "object",
+        "description": "Grouping for custom attributes.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Group ID.",
+            "example": 10
+          },
+          "name": {
+            "type": "string",
+            "description": "Group name.",
+            "example": "Preferences"
+          },
+          "order": {
+            "type": "integer",
+            "description": "Display order.",
+            "example": 1
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "order"
+        ]
+      },
+      "AttributeCategory": {
+        "type": "object",
+        "description": "Category option for categoric custom attributes.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Category ID.",
+            "example": 100
+          },
+          "category": {
+            "type": "string",
+            "description": "Category label.",
+            "example": "Curly"
+          },
+          "order": {
+            "type": "integer",
+            "description": "Display order.",
+            "example": 1
+          }
+        },
+        "required": [
+          "id",
+          "category",
+          "order"
+        ]
+      },
+      "Location": {
+        "type": "object",
+        "description": "Location resource (filtered for public API).",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unique location ID.",
+            "example": 1
+          },
+          "uuid": {
+            "type": "string",
+            "description": "Location UUID.",
+            "example": "loc-uuid-1"
+          },
+          "name": {
+            "type": "string",
+            "description": "Location name.",
+            "example": "Sucursal Providencia"
+          },
+          "active": {
+            "type": "boolean",
+            "description": "Whether the location is active.",
+            "example": true
+          },
+          "address": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Address as a flat hash keyed by Google Maps component type.",
+            "example": {
+              "route": "Av. Providencia",
+              "street_number": "1234",
+              "locality": "Providencia",
+              "administrative_area_level_1": "Regi\u00f3n Metropolitana",
+              "country": "Chile"
+            }
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true,
+            "description": "Location phone number.",
+            "example": "+56912345678"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "Location email.",
+            "example": "providencia@example.com"
+          },
+          "latitude": {
+            "type": "number",
+            "format": "double",
+            "nullable": true,
+            "description": "Geographic latitude.",
+            "example": -33.4255
+          },
+          "longitude": {
+            "type": "number",
+            "format": "double",
+            "nullable": true,
+            "description": "Geographic longitude.",
+            "example": -70.6101
+          },
+          "timezone": {
+            "type": "string",
+            "description": "IANA timezone identifier.",
+            "example": "America/Santiago"
+          },
+          "image": {
+            "$ref": "#/components/schemas/LocationImage"
+          },
+          "image_map": {
+            "type": "string",
+            "nullable": true,
+            "description": "Image map URL."
+          },
+          "company_id": {
+            "type": "integer",
+            "description": "Company ID.",
+            "example": 100
+          },
+          "company": {
+            "type": "object",
+            "description": "Parent company.",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 100
+              },
+              "name": {
+                "type": "string",
+                "example": "Spa Relax"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ]
+          },
+          "country": {
+            "type": "object",
+            "description": "Country information.",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 1
+              },
+              "name": {
+                "type": "string",
+                "example": "Chile"
+              },
+              "timezone_name": {
+                "type": "string",
+                "example": "Santiago"
+              },
+              "timezone_offset": {
+                "type": "string",
+                "example": "-03:00"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "timezone_name",
+              "timezone_offset"
+            ]
+          },
+          "country_id": {
+            "type": "integer",
+            "description": "Country ID.",
+            "example": 1
+          },
+          "times": {
+            "type": "array",
+            "description": "Operating hours.",
+            "items": {
+              "$ref": "#/components/schemas/LocationTime"
+            }
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Creation timestamp."
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Last update timestamp."
+          }
+        },
+        "required": [
+          "id",
+          "uuid",
+          "name",
+          "active",
+          "address",
+          "phone",
+          "email",
+          "latitude",
+          "longitude",
+          "timezone",
+          "image",
+          "image_map",
+          "company_id",
+          "company",
+          "country",
+          "country_id",
+          "times",
+          "created_at",
+          "updated_at"
+        ]
+      },
+      "LocationImage": {
+        "type": "object",
+        "nullable": true,
+        "description": "Location image.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "url": {
+            "type": "string",
+            "example": "https://cdn.example.com/locations/1.jpg"
+          }
+        },
+        "required": [
+          "id",
+          "url"
+        ]
+      },
+      "LocationTime": {
+        "type": "object",
+        "description": "Location operating hours for a day.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "day_id": {
+            "type": "integer",
+            "description": "Day of the week (0=Sunday, 1=Monday, ..., 6=Saturday).",
+            "example": 1
+          },
+          "open": {
+            "type": "string",
+            "description": "Opening time (HH:MM).",
+            "example": "09:00"
+          },
+          "close": {
+            "type": "string",
+            "description": "Closing time (HH:MM).",
+            "example": "18:00"
+          }
+        },
+        "required": [
+          "id",
+          "day_id",
+          "open",
+          "close"
+        ]
+      },
+      "LocationListResponse": {
+        "type": "object",
+        "description": "Paginated location list response.",
+        "properties": {
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Location"
+            }
+          }
+        },
+        "required": [
+          "pagination",
+          "data"
+        ]
+      },
+      "ServiceDetail": {
+        "type": "object",
+        "description": "Service resource (filtered for public API).",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unique service ID.",
+            "example": 10
+          },
+          "uuid": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Service UUID.",
+            "example": "svc-uuid-1"
+          },
+          "name": {
+            "type": "string",
+            "description": "Service name.",
+            "example": "Corte clasico"
+          },
+          "active": {
+            "type": "boolean",
+            "description": "Whether the service is active.",
+            "example": true
+          },
+          "price": {
+            "type": "string",
+            "description": "Service price.",
+            "example": "15000"
+          },
+          "discount": {
+            "type": "string",
+            "nullable": true,
+            "description": "Online payment discount as a percentage of the price (0-100). Applies to the price when the booking is paid online (`paying_price = price * (100 - discount) / 100`). Only meaningful when `has_discount` is true and `online_payment.mode` is not `NOT_AVAILABLE`.",
+            "example": "10.0"
+          },
+          "has_discount": {
+            "type": "boolean",
+            "description": "Whether the service has an online payment discount.",
+            "example": false
+          },
+          "duration": {
+            "type": "integer",
+            "description": "Duration in minutes (5-1439).",
+            "example": 30
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "description": "Service description.",
+            "example": "Classic haircut service"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "service",
+              "class",
+              "session"
+            ],
+            "description": "Service type.",
+            "example": "service"
+          },
+          "online_booking": {
+            "type": "boolean",
+            "description": "Whether online booking is enabled.",
+            "example": true
+          },
+          "online_payment": {
+            "type": "object",
+            "description": "Online payment configuration.",
+            "properties": {
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "NOT_AVAILABLE",
+                  "OPTIONAL",
+                  "MANDATORY_PARTIAL",
+                  "MANDATORY_TOTAL"
+                ],
+                "example": "NOT_AVAILABLE"
+              },
+              "amount": {
+                "type": "number",
+                "nullable": true
+              }
+            },
+            "required": [
+              "mode"
+            ]
+          },
+          "outcall": {
+            "type": "boolean",
+            "description": "Whether the service supports outcall.",
+            "example": false
+          },
+          "is_video": {
+            "type": "boolean",
+            "description": "Whether the service is a video call.",
+            "example": false
+          },
+          "category": {
+            "type": "object",
+            "nullable": true,
+            "description": "Service category.",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 1
+              },
+              "name": {
+                "type": "string",
+                "example": "Hair"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ]
+          },
+          "images": {
+            "type": "array",
+            "description": "Service images (max 3).",
+            "items": {
+              "$ref": "#/components/schemas/ServiceImage"
+            }
+          },
+          "providers": {
+            "type": "array",
+            "description": "Providers that deliver this service.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "example": 5
+                },
+                "name": {
+                  "type": "string",
+                  "example": "John Stylist"
+                }
+              },
+              "required": [
+                "id",
+                "name"
+              ]
+            }
+          },
+          "location_id": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Location ID (if location-specific)."
+          },
+          "company_id": {
+            "type": "integer",
+            "description": "Company ID.",
+            "example": 100
+          },
+          "favorite": {
+            "type": "boolean",
+            "description": "Whether the service is marked as favorite.",
+            "example": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Creation timestamp."
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Last update timestamp."
+          }
+        },
+        "required": [
+          "id",
+          "uuid",
+          "name",
+          "active",
+          "price",
+          "discount",
+          "has_discount",
+          "duration",
+          "description",
+          "type",
+          "online_booking",
+          "online_payment",
+          "outcall",
+          "is_video",
+          "category",
+          "images",
+          "providers",
+          "location_id",
+          "company_id",
+          "favorite",
+          "created_at",
+          "updated_at"
+        ]
+      },
+      "ServiceImage": {
+        "type": "object",
+        "description": "Service image.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "url": {
+            "type": "string",
+            "example": "https://cdn.example.com/services/10/img1.jpg"
+          }
+        },
+        "required": [
+          "id",
+          "url"
+        ]
+      },
+      "ServiceIndex": {
+        "type": "object",
+        "description": "Service list item (filtered for public API). Unlike ServiceDetail, the list shape carries a single `image` (the service's first image) and does not include `images` or `providers` \u2014 fetch the service detail for the full image list and providers.\n",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unique service ID.",
+            "example": 10
+          },
+          "uuid": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Service UUID.",
+            "example": "svc-uuid-1"
+          },
+          "name": {
+            "type": "string",
+            "description": "Service name.",
+            "example": "Corte clasico"
+          },
+          "active": {
+            "type": "boolean",
+            "description": "Whether the service is active.",
+            "example": true
+          },
+          "price": {
+            "type": "string",
+            "description": "Service price.",
+            "example": "15000"
+          },
+          "discount": {
+            "type": "string",
+            "nullable": true,
+            "description": "Online payment discount as a percentage of the price (0-100). Applies to the price when the booking is paid online (`paying_price = price * (100 - discount) / 100`). Only meaningful when `has_discount` is true and `online_payment.mode` is not `NOT_AVAILABLE`.",
+            "example": "10.0"
+          },
+          "has_discount": {
+            "type": "boolean",
+            "description": "Whether the service has an online payment discount.",
+            "example": false
+          },
+          "duration": {
+            "type": "integer",
+            "description": "Duration in minutes (5-1439).",
+            "example": 30
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "description": "Service description.",
+            "example": "Classic haircut service"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "service",
+              "class",
+              "session"
+            ],
+            "description": "Service type.",
+            "example": "service"
+          },
+          "online_booking": {
+            "type": "boolean",
+            "description": "Whether online booking is enabled.",
+            "example": true
+          },
+          "online_payment": {
+            "type": "object",
+            "description": "Online payment configuration.",
+            "properties": {
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "NOT_AVAILABLE",
+                  "OPTIONAL",
+                  "MANDATORY_PARTIAL",
+                  "MANDATORY_TOTAL"
+                ],
+                "example": "NOT_AVAILABLE"
+              },
+              "amount": {
+                "type": "number",
+                "nullable": true
+              }
+            },
+            "required": [
+              "mode"
+            ]
+          },
+          "outcall": {
+            "type": "boolean",
+            "description": "Whether the service supports outcall.",
+            "example": false
+          },
+          "is_video": {
+            "type": "boolean",
+            "description": "Whether the service is a video call.",
+            "example": false
+          },
+          "category": {
+            "type": "object",
+            "nullable": true,
+            "description": "Service category.",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 1
+              },
+              "name": {
+                "type": "string",
+                "example": "Hair"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ]
+          },
+          "image": {
+            "type": "object",
+            "nullable": true,
+            "description": "First service image, or null when the service has no images.",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 1
+              },
+              "url": {
+                "type": "string",
+                "example": "https://cdn.example.com/services/10/img1.jpg"
+              }
+            },
+            "required": [
+              "id",
+              "url"
+            ]
+          },
+          "location_id": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Location ID (if location-specific)."
+          },
+          "company_id": {
+            "type": "integer",
+            "description": "Company ID.",
+            "example": 100
+          },
+          "favorite": {
+            "type": "boolean",
+            "description": "Whether the service is marked as favorite.",
+            "example": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Creation timestamp."
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Last update timestamp."
+          }
+        },
+        "required": [
+          "id",
+          "uuid",
+          "name",
+          "active",
+          "price",
+          "discount",
+          "has_discount",
+          "duration",
+          "description",
+          "type",
+          "online_booking",
+          "online_payment",
+          "outcall",
+          "is_video",
+          "category",
+          "image",
+          "location_id",
+          "company_id",
+          "favorite",
+          "created_at",
+          "updated_at"
+        ]
+      },
+      "ServiceListResponse": {
+        "type": "object",
+        "description": "Paginated service list response.",
+        "properties": {
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServiceIndex"
+            }
+          }
+        },
+        "required": [
+          "pagination",
+          "data"
+        ]
+      },
+      "Provider": {
+        "type": "object",
+        "description": "Service provider resource (filtered for public API).",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unique provider ID.",
+            "example": 5
+          },
+          "company_id": {
+            "type": "integer",
+            "description": "Company ID.",
+            "example": 100
+          },
+          "location_id": {
+            "type": "integer",
+            "description": "Location ID.",
+            "example": 1
+          },
+          "active": {
+            "type": "boolean",
+            "description": "Whether the provider is active.",
+            "example": true
+          },
+          "public_name": {
+            "type": "string",
+            "description": "Provider display name.",
+            "example": "John Stylist"
+          },
+          "online_booking": {
+            "type": "boolean",
+            "description": "Whether online booking is enabled for this provider.",
+            "example": true
+          },
+          "images": {
+            "type": "array",
+            "description": "Provider images.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "example": 1
+                },
+                "url": {
+                  "type": "string",
+                  "example": "https://cdn.example.com/providers/5/img1.jpg"
+                },
+                "thumbnail_url": {
+                  "type": "string",
+                  "example": "https://cdn.example.com/providers/5/thumb1.jpg"
+                }
+              },
+              "required": [
+                "id",
+                "url",
+                "thumbnail_url"
+              ]
+            }
+          },
+          "provider_open_days": {
+            "type": "boolean",
+            "description": "Whether the provider has open days configured.",
+            "example": true
+          },
+          "provider_times": {
+            "type": "array",
+            "description": "Provider working schedule.",
+            "items": {
+              "$ref": "#/components/schemas/ProviderTime"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "company_id",
+          "location_id",
+          "active",
+          "public_name",
+          "online_booking",
+          "images",
+          "provider_open_days",
+          "provider_times"
+        ]
+      },
+      "ProviderTime": {
+        "type": "object",
+        "description": "Provider working hours for a day.",
+        "properties": {
+          "day_id": {
+            "type": "integer",
+            "description": "Day of the week (0=Sunday, 1=Monday, ..., 6=Saturday).",
+            "example": 1
+          },
+          "open": {
+            "type": "string",
+            "description": "Opening time (HH:MM).",
+            "example": "09:00"
+          },
+          "close": {
+            "type": "string",
+            "description": "Closing time (HH:MM).",
+            "example": "18:00"
+          },
+          "breaks": {
+            "type": "array",
+            "description": "Break periods during the day.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "open": {
+                  "type": "string",
+                  "example": "13:00"
+                },
+                "close": {
+                  "type": "string",
+                  "example": "14:00"
+                }
+              }
+            }
+          }
+        },
+        "required": [
+          "day_id",
+          "open",
+          "close"
+        ]
+      },
+      "ProviderListResponse": {
+        "type": "object",
+        "description": "Paginated provider list response.",
+        "properties": {
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Provider"
+            }
+          }
+        },
+        "required": [
+          "pagination",
+          "data"
+        ]
+      },
+      "Sale": {
+        "type": "object",
+        "description": "Sale resource (filtered for public API).",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unique sale ID.",
+            "example": 500
+          },
+          "cart_id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID of the cart this sale was created from. Use it to correlate a sale with its cart.",
+            "example": 8842
+          },
+          "client_id": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Client ID associated to the sale (sourced from the cart). Present in list responses; nullable when the cart has no client.",
+            "example": 223190
+          },
+          "pending_amount": {
+            "type": "string",
+            "description": "Pending amount as decimal string.",
+            "example": "0.0"
+          },
+          "paid_amount": {
+            "type": "string",
+            "description": "Paid amount as decimal string.",
+            "example": "50.0"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "partially_paid",
+              "paid",
+              "canceled",
+              "refunded"
+            ],
+            "description": "Sale status.",
+            "example": "paid"
+          },
+          "paid_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Payment timestamp."
+          },
+          "location_id": {
+            "type": "integer",
+            "description": "Location ID.",
+            "example": 1
+          },
+          "location": {
+            "type": "object",
+            "description": "Location where the sale was made.",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 1
+              },
+              "name": {
+                "type": "string",
+                "example": "Main Branch"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ]
+          },
+          "transactions": {
+            "type": "array",
+            "description": "Transactions associated with this sale.",
+            "items": {
+              "$ref": "#/components/schemas/SaleTransaction"
+            }
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Creation timestamp."
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Last update timestamp."
+          }
+        },
+        "required": [
+          "id",
+          "cart_id",
+          "pending_amount",
+          "paid_amount",
+          "status",
+          "paid_at",
+          "location_id",
+          "location",
+          "transactions",
+          "created_at",
+          "updated_at"
+        ]
+      },
+      "SaleTransaction": {
+        "type": "object",
+        "description": "Payment transaction within a sale.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unique transaction ID.",
+            "example": 300
+          },
+          "amount": {
+            "type": "string",
+            "description": "Transaction amount as decimal string.",
+            "example": "50.0"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Creation timestamp."
+          },
+          "paid_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Payment timestamp."
+          },
+          "payment_method": {
+            "type": "object",
+            "description": "Payment method used.",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "description": "Payment method ID.",
+                "example": 10
+              },
+              "type": {
+                "type": "string",
+                "description": "Payment method type.",
+                "example": "CompanyPaymentMethod"
+              },
+              "name": {
+                "type": "string",
+                "description": "Payment method name.",
+                "example": "Online Payment"
+              }
+            }
+          }
+        },
+        "required": [
+          "id",
+          "amount",
+          "created_at"
+        ]
+      },
+      "SaleListResponse": {
+        "type": "object",
+        "description": "Paginated sale list response.",
+        "properties": {
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Sale"
+            }
+          }
+        },
+        "required": [
+          "pagination",
+          "data"
+        ]
+      },
+      "Pagination": {
+        "type": "object",
+        "description": "Pagination metadata.",
+        "properties": {
+          "current_page": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Current page.",
+            "example": 1
+          },
+          "per_page": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "description": "Records per page.",
+            "example": 30
+          },
+          "next_page": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1,
+            "description": "Next page number, or null on the last page.",
+            "example": 2
+          },
+          "prev_page": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1,
+            "description": "Previous page number, or null on the first page.",
+            "example": null
+          },
+          "total_records": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Total records.",
+            "example": 95
+          },
+          "total_pages": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Total pages.",
+            "example": 4
+          }
+        },
+        "required": [
+          "current_page",
+          "per_page",
+          "next_page",
+          "prev_page",
+          "total_records",
+          "total_pages"
+        ]
+      },
+      "ErrorDetailResponse": {
+        "type": "object",
+        "description": "Standard error response.\nThe `error` field contains the error type and the `detail` field\nprovides additional context.\n",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Error type identifier.",
+            "example": "unauthorized"
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true,
+            "description": "Additional context about the error.",
+            "example": "invalid_api_key"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "CartItemInput": {
+        "type": "object",
+        "description": "Cart item payload. Validation rules per item_type live in platform-sales.",
+        "required": [
+          "item_id",
+          "item_type",
+          "unit_price",
+          "quantity"
+        ],
+        "properties": {
+          "item_id": {
+            "type": "integer",
+            "description": "Catalog ID of the item (service, product, plan, etc.)."
+          },
+          "item_type": {
+            "type": "string",
+            "enum": [
+              "service",
+              "class",
+              "session",
+              "addon",
+              "plan",
+              "bundle",
+              "product",
+              "treatment",
+              "giftcard",
+              "membership"
+            ]
+          },
+          "item_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "item_uuid": {
+            "type": "string",
+            "nullable": true
+          },
+          "unit_price": {
+            "type": "string",
+            "description": "Unit price as decimal string."
+          },
+          "quantity": {
+            "type": "integer"
+          },
+          "unit_discount": {
+            "type": "string",
+            "nullable": true
+          },
+          "unit_discount_type": {
+            "type": "string",
+            "nullable": true
+          },
+          "instances": {
+            "type": "array",
+            "description": "Per-unit instances. For service bookings, exactly one instance with\n`instance_type: \"booking\"`. Use `reference_id` for an existing\nbooking, or `reference_id: null` plus `data.start_time` and\n`data.provider_id` to create the booking on the fly when the\npayment request is created. `data.creative_source` defaults to\n`connect` when omitted.\n",
+            "items": {
+              "type": "object",
+              "properties": {
+                "instance_type": {
+                  "type": "string",
+                  "example": "booking"
+                },
+                "reference_id": {
+                  "type": "integer",
+                  "nullable": true
+                },
+                "data": {
+                  "type": "object",
+                  "nullable": true,
+                  "properties": {
+                    "start_time": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "provider_id": {
+                      "type": "integer"
+                    },
+                    "creative_source": {
+                      "type": "string",
+                      "description": "Defaults to `connect` when omitted."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "CartInput": {
+        "type": "object",
+        "description": "Cart creation payload. The company is taken from the API key.",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "client_id": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Client the cart (and resulting sale/booking) belongs to."
+          },
+          "location_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "items": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/components/schemas/CartItemInput"
+            }
+          }
+        }
+      },
+      "CartUpdateInput": {
+        "type": "object",
+        "description": "Cart update payload. `items` replaces the full items array.",
+        "properties": {
+          "client_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CartItemInput"
+            }
+          }
+        }
+      },
+      "Cart": {
+        "type": "object",
+        "description": "Cart resource (filtered for public API).",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 100
+          },
+          "uuid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "client_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "location_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "total": {
+            "type": "string",
+            "description": "Cart total as decimal string.",
+            "example": "20000.0"
+          },
+          "subtotal": {
+            "type": "string",
+            "example": "20000.0"
+          },
+          "discount": {
+            "type": "string",
+            "example": "0.0"
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "online_payment": {
+            "type": "boolean",
+            "description": "Whether every item in the cart is payable online."
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "Cart item (filtered subset).",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "item_id": {
+                  "type": "integer"
+                },
+                "item_type": {
+                  "type": "string"
+                },
+                "item_name": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "quantity": {
+                  "type": "integer"
+                },
+                "unit_price": {
+                  "type": "string"
+                },
+                "total_price": {
+                  "type": "string"
+                },
+                "unit_discount": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "unit_discount_type": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "total_discount": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "discount": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "reference_id": {
+                  "type": "integer",
+                  "nullable": true
+                },
+                "instances": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PaymentRequest": {
+        "type": "object",
+        "description": "Payment request resource (filtered for public API).",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 900
+          },
+          "uuid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "amount": {
+            "type": "string",
+            "description": "Amount to collect as decimal string (full cart total).",
+            "example": "20000.0"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "paid",
+              "expired",
+              "cancelled"
+            ]
+          },
+          "channel": {
+            "type": "string",
+            "description": "Always `online` for payment requests created through the public API.",
+            "example": "online"
+          },
+          "params": {
+            "type": "object",
+            "properties": {
+              "checkout_url": {
+                "type": "string",
+                "format": "uri",
+                "description": "URL where the end customer completes the payment."
+              },
+              "expires_at": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true,
+                "description": "Present when bookings were reserved; the payment request expires at this time if unpaid."
+              }
+            }
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Category": {
+        "type": "object",
+        "description": "Service category resource (filtered for public API).",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unique category ID.",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "description": "Category name.",
+            "example": "Cortes"
+          },
+          "order": {
+            "type": "integer",
+            "description": "Display order configured by the company (list is sorted by this field ascending).",
+            "example": 1
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Creation timestamp.",
+            "example": "2025-01-15T10:30:00-03:00"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Last update timestamp.",
+            "example": "2025-01-15T10:30:00-03:00"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "order",
+          "created_at",
+          "updated_at"
+        ]
+      },
+      "CategoryListResponse": {
+        "type": "object",
+        "description": "Paginated category list response.",
+        "properties": {
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Category"
+            }
+          }
+        },
+        "required": [
+          "pagination",
+          "data"
+        ]
+      }
+    },
+    "responses": {
+      "Unauthorized": {
+        "description": "Missing or invalid Bearer API key, or inactive API configuration.",
+        "headers": {
+          "WWW-Authenticate": {
+            "schema": {
+              "type": "string",
+              "example": "Bearer"
+            }
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorDetailResponse"
+            },
+            "examples": {
+              "invalidApiKey": {
+                "summary": "[Error] 401 Unauthorized - Invalid API key",
+                "value": {
+                  "error": "unauthorized",
+                  "detail": "invalid_api_key"
+                }
+              },
+              "apiConfigInactive": {
+                "summary": "[Error] 401 Unauthorized - API access inactive",
+                "value": {
+                  "error": "unauthorized",
+                  "detail": "api_config_inactive"
+                }
+              }
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "API key lacks the required scope for this operation.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorDetailResponse"
+            },
+            "examples": {
+              "scopeDenied": {
+                "summary": "[Error] 403 Forbidden - Scope denied",
+                "value": {
+                  "error": "forbidden",
+                  "detail": "scope_denied"
+                }
+              }
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Resource not found.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorDetailResponse"
+            },
+            "examples": {
+              "notFound": {
+                "summary": "[Error] 404 Not Found - Resource not found",
+                "value": {
+                  "error": "not_found",
+                  "detail": "booking"
+                }
+              }
+            }
+          }
+        }
+      },
+      "RateLimited": {
+        "description": "Rate limit exceeded. Check the `Retry-After` header.",
+        "headers": {
+          "Retry-After": {
+            "description": "Seconds until the rate limit resets.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorDetailResponse"
+            },
+            "examples": {
+              "burstLimitExceeded": {
+                "summary": "[Error] 429 Too Many Requests - Burst limit",
+                "value": {
+                  "error": "rate_limited",
+                  "detail": "burst_limit_exceeded"
+                }
+              },
+              "dailyQuotaExceeded": {
+                "summary": "[Error] 429 Too Many Requests - Daily quota",
+                "value": {
+                  "error": "rate_limited",
+                  "detail": "daily_quota_exceeded"
+                }
+              }
+            }
+          }
+        }
+      },
+      "UpstreamUnavailable": {
+        "description": "Upstream service is unavailable.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorDetailResponse"
+            },
+            "examples": {
+              "upstreamUnavailable": {
+                "summary": "[Error] 502 Bad Gateway - Upstream unavailable",
+                "value": {
+                  "error": "upstream_unavailable",
+                  "detail": "The upstream service is unavailable"
+                }
+              }
+            }
+          }
+        }
+      },
+      "InternalServerError": {
+        "description": "Internal server error.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorDetailResponse"
+            },
+            "examples": {
+              "internalError": {
+                "summary": "[Error] 500 Internal Server Error - Internal error",
+                "value": {
+                  "error": "internal_error",
+                  "detail": "unexpected"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,105 @@
+generated: '2026-09-12'
+method: searched
+source: https://developers.agendapro.com/docs/webhooks
+docs: https://developers.agendapro.com/docs/webhooks
+asyncapi_spec_published: false
+asyncapi_note: AgendaPro publishes no AsyncAPI, CloudEvents or event-schema document. This file is the webhook catalogue
+  transcribed from the provider's own webhooks guide; no event schema has been authored on AgendaPro's behalf. The
+  delivery payload shape below is the example the provider publishes verbatim.
+surface: outbound HTTP webhooks
+transport:
+  protocol: HTTPS
+  method: POST
+  content_type: application/json
+registration:
+  where: Configuraciones > Integraciones in the AgendaPro web app
+  api_managed: false
+  note: There is no endpoint in the Connect v3 API to create, list or delete a webhook subscription — registration
+    is UI-only, so an agent cannot self-provision an event subscription.
+  required_fields:
+  - url (must accept POST)
+  - events
+event_count: 6
+events:
+- name: booking.created
+  description: A booking was created
+  resource: Booking
+- name: booking.updated
+  description: A booking was updated
+  resource: Booking
+- name: client.created
+  description: A client was created
+  resource: Client
+- name: client.updated
+  description: A client was updated
+  resource: Client
+- name: payment_request.paid
+  description: A payment request was paid
+  resource: PaymentRequest
+- name: payment_request.expired
+  description: A payment request expired without being completed
+  resource: PaymentRequest
+wildcards:
+- pattern: '*'
+  matches: all events
+- pattern: booking.*
+  matches: all booking events
+- pattern: client.*
+  matches: all client events
+- pattern: payment_request.*
+  matches: all payment-request events
+payload:
+  envelope_fields:
+  - name: type
+    type: string
+    description: The event name, e.g. booking.created
+  - name: timestamp
+    type: string
+    format: date-time
+    description: ISO 8601 UTC event time
+  - name: data
+    type: object
+    description: The resource snapshot
+  example:
+    type: booking.created
+    timestamp: '2026-03-27T14:30:00Z'
+    data:
+      id: 12345
+      start_time: '2026-03-28T10:00:00-03:00'
+      end_time: '2026-03-28T10:30:00-03:00'
+      service_id: 10
+      client_id: 42
+      location_id: 1
+  source: https://developers.agendapro.com/docs/webhooks
+security:
+  signature:
+    header: X-Webhook-Signature
+    algorithm: HMAC-SHA256
+    encoding: hex
+    signed_over: the raw request body
+    secret: per-webhook, displayed only once at creation
+    verification_examples_published:
+    - Ruby
+    - Node.js
+    - Python
+    timestamp_in_signature: false
+    replay_protection_note: The signature covers the body only; no timestamp or nonce is included in the signed
+      material, so a captured delivery replays with a valid signature. The docs mitigate this by telling consumers
+      to de-duplicate on the resource id.
+  mtls: false
+  ip_allowlist_published: false
+delivery:
+  retry: exponential backoff on any non-2xx response
+  max_attempts: not published
+  auto_disable: true
+  auto_disable_note: After repeated failures the webhook is disabled automatically and must be re-enabled from the
+    settings UI.
+  ordering_guarantee: not published
+  at_least_once: true
+  at_least_once_note: The docs state an event may exceptionally be delivered more than once and instruct consumers
+    to de-duplicate using the resource id.
+  expected_response: 2xx as fast as possible; process asynchronously
+notes:
+- Webhook events cover only 3 of the 11 API resources (bookings, clients, payment requests). There is no event for
+  sales, carts, services, providers, locations, categories or custom attributes, so an agent keeping a mirror of
+  those resources must poll.

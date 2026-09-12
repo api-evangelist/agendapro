@@ -1,0 +1,81 @@
+generated: '2026-09-12'
+method: searched
+source: https://agendapro.com/en/planes
+docs: https://agendapro.com/en/planes
+plan_count: 4
+currency: varies by country (CLP, MXN, COP, PEN, ARS, BRL, EUR, USD)
+billing_periods:
+- monthly
+- annual
+annual_discount: 2 months free on annual billing
+price_visibility: listed-but-not-machine-readable
+price_visibility_note: The plans page renders prices client-side per detected country; the served HTML carries a
+  bare "$" placeholder for every tier, so no price value could be read without executing the page script. Tier names,
+  seat ranges and included features ARE published in the HTML and are recorded verbatim below.
+api_access:
+  included_in:
+  - Pro
+  note: API access and API-key creation require an active Pro plan.
+plans:
+- name: Individual
+  price: null
+  currency: null
+  period: month
+  seats: 1 professional
+  includes:
+  - Online scheduling
+  - Unlimited classes
+  - Client management / CRM
+  - Automatic reminders
+  - 500 marketing emails per month
+  - Management reports
+  - Daily notifications
+  - 50 free WhatsApp reminders per month
+  api_access: false
+- name: Essential
+  price: null
+  currency: null
+  period: month
+  seats: 2-20 professionals (scalable)
+  includes:
+  - Everything in Individual
+  - 1,000 marketing emails per month
+  - Inventory
+  - Commissions
+  - 50 free WhatsApp reminders per month
+  api_access: false
+- name: Premium
+  price: null
+  currency: null
+  period: month
+  seats: 2-20 professionals (scalable)
+  label: most popular
+  includes:
+  - Everything in Essential
+  - 2,000 marketing emails per month
+  - Satisfaction surveys
+  - Customizable tabs
+  - Gift cards
+  - Budgets
+  - 100 free WhatsApp reminders per month
+  api_access: false
+- name: Pro
+  price: null
+  currency: null
+  period: month
+  seats: 2-20 professionals (scalable)
+  includes:
+  - Everything in Premium
+  - 5,000 marketing emails per month
+  - API access
+  - Personalized support
+  - Google Analytics and Meta Pixel integration
+  - 200 free WhatsApp reminders per month
+  api_access: true
+metering:
+  api_calls_metered: false
+  note: API usage is not billed per call. It is gated by plan tier and capped by the rate limits in rate-limits/agendapro-rate-limits.yml
+    (70/min, 10,000/day per company). No overage or paid quota-increase path is published.
+notes:
+- No free tier or free API sandbox is published; a time-limited free trial of the product is offered.
+- Enterprise/multi-location pricing above 20 professionals is quoted through sales.

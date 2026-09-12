@@ -1,0 +1,73 @@
+generated: '2026-09-12'
+method: searched
+source: registry.npmjs.org, pypi.org, rubygems.org, packagist.org, api.github.com/orgs/agendapro
+api_client_sdk_count: 0
+api_client_sdk_note: AgendaPro publishes NO client SDK for the Connect v3 API in any language. Searched npm (including
+  the first-party @agendapro scope, which returns 0 packages in registry search), PyPI, RubyGems, Packagist, Maven
+  Central and the agendapro GitHub organization. The developer documentation offers raw curl examples only, and
+  lists no SDK, helper library or generated client.
+package_count: 1
+packages:
+- name: '@agendapro/react-native-events-calendar'
+  registry: npm
+  url: https://www.npmjs.com/package/@agendapro/react-native-events-calendar
+  official: true
+  official_evidence: Published under the first-party @agendapro npm scope; repository field points at github.com/agendapro/react-native-event-calendar.
+  kind: ui-component
+  wraps_api: false
+  wraps_api_note: A React Native calendar rendering component. It is NOT a client for the Connect v3 API — it contains
+    no HTTP client, no auth handling and predates the v3 API by more than four years.
+  language: JavaScript
+  description: show calendar events by date
+  version: 0.6.0
+  published: '2021-11-11'
+  release_count: 30
+  repository: https://github.com/agendapro/react-native-event-calendar
+  repository_status: not present in the agendapro GitHub organization as of 2026-09-12 (the org lists 4 public repos,
+    none of them this one) — the linked source repository is gone or private.
+  note: Last published 2021-11-11, nearly five years before this probe and roughly four and a half years before
+    the Connect v3 API shipped (OpenAPI first uploaded 2026-03-27). Recorded as an abandonment signal on the only
+    first-party package AgendaPro has ever published, not as API tooling.
+github_organization:
+  url: https://github.com/agendapro
+  public_repos: 4
+  note: The four public repositories are test scaffolds and unrelated forks (testAgendaPro, test-laravel, fleetgo-portal,
+    fireactions). None is an API client, an OpenAPI mirror or an integration example.
+  repos:
+  - name: testAgendaPro
+    language: JavaScript
+    description: Modelo de prueba para agendapro Frontend
+    pushed: '2026-04-01'
+  - name: test-laravel
+    language: null
+    description: null
+    pushed: '2026-04-01'
+  - name: fleetgo-portal
+    language: TypeScript
+    description: null
+    pushed: '2026-05-22'
+  - name: fireactions
+    language: null
+    description: BYOM self-hosted GitHub runners on Firecracker VMs (fork)
+    pushed: '2026-08-10'
+registries_checked:
+- registry: npm
+  query: scope:agendapro
+  result: 0 packages in search; 1 package resolvable by direct name lookup (@agendapro/react-native-events-calendar)
+- registry: npm
+  query: agendapro api client
+  result: no first-party API client
+- registry: PyPI
+  result: none
+- registry: RubyGems
+  result: none
+- registry: Packagist
+  result: none
+- registry: Maven Central
+  result: none
+- registry: NuGet
+  result: none
+- registry: crates.io
+  result: none
+- registry: pkg.go.dev
+  result: none

@@ -1,0 +1,84 @@
+generated: '2026-09-12'
+method: searched
+source: https://developers.agendapro.com/reference/getting-started-v3
+docs: https://developers.agendapro.com/reference/getting-started-v3
+scheme:
+  kind: api-key-scopes
+  oauth2: false
+  note: AgendaPro publishes a real {resource}:{action} scope catalogue, but it is attached to a static per-company
+    API key rather than to OAuth 2.0 tokens. There is no authorization endpoint, no consent screen, and no token
+    exchange. The OAuthScopes pointer is used because it is the canonical type for a published scope reference;
+    the authorization framework is NOT OAuth.
+  pattern: '{resource}:{action}'
+  empty_scopes_means_full_access: true
+  granted_at: API key creation, in Configuraciones > Integraciones
+  denial: 403 forbidden / scope_denied
+scope_count: 11
+scopes:
+- name: bookings:read
+  description: List and show bookings
+  operations:
+  - listBookings
+  - getBooking
+  - listAvailableSlots
+- name: bookings:write
+  description: Create, update, and cancel bookings
+  operations:
+  - createBooking
+  - updateBooking
+  - cancelBooking
+- name: clients:read
+  description: List and show clients
+  operations:
+  - listClients
+  - getClient
+  - quickSearchClients
+  - listClientCustomAttributes
+- name: clients:write
+  description: Create and update clients
+  operations:
+  - createClient
+  - updateClient
+  - deactivateClient
+- name: locations:read
+  description: List and show locations
+  operations:
+  - listLocations
+  - getLocation
+- name: services:read
+  description: List and show services
+  operations:
+  - listServices
+  - getService
+  - listCategories
+- name: providers:read
+  description: List and show providers
+  operations:
+  - listProviders
+  - getProvider
+- name: custom_attributes:read
+  description: List custom attribute templates
+  operations:
+  - listCustomAttributeTemplates
+- name: sales:read
+  description: List and show sales
+  operations:
+  - listSales
+  - getSale
+- name: carts:write
+  description: Create and update carts and create payment requests
+  operations:
+  - createCart
+  - updateCart
+  - getCart
+  - createPaymentRequest
+- name: payment_requests:write
+  description: Cancel a pending payment request
+  operations:
+  - cancelPaymentRequest
+notes:
+- Nine scopes are enumerated in the OpenAPI info.description scope table. carts:write and payment_requests:write
+  are NOT in that table but are named as required scopes in the per-operation error dictionaries for the cart and
+  payment-request endpoints; both are recorded here with that provenance so the catalogue matches the enforced surface.
+- No write scope exists for locations, services, categories, providers or sales — those resources are read-only
+  through the public API.

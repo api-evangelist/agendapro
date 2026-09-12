@@ -1,0 +1,57 @@
+generated: '2026-09-12'
+method: generated
+source: openapi/agendapro-connect-v3-openapi.yml + https://developers.agendapro.com/llms.txt
+provider_published_skills: false
+provider_published_note: AgendaPro publishes no AGENTS.md, skills/ directory or agent operating guide. These are
+  API Evangelist skills generated from the provider OpenAPI and documentation; every operationId was verified against
+  openapi/_original/platform-connect-v3.json.
+skill_count: 3
+skills:
+- name: agendapro-book-appointment
+  file: skills/agendapro-book-appointment.md
+  description: Find an available slot and create a booking for a client, with duplicate-safe client resolution and
+    no blind retries.
+  operations:
+  - listLocations
+  - listServices
+  - listAvailableSlots
+  - quickSearchClients
+  - createClient
+  - createBooking
+  - getBooking
+  scopes:
+  - locations:read
+  - services:read
+  - bookings:read
+  - clients:read
+  - clients:write
+  - bookings:write
+- name: agendapro-modify-or-cancel-booking
+  file: skills/agendapro-modify-or-cancel-booking.md
+  description: Reschedule or cancel a booking, reading the merchant customer-policy refusals as terminal rather
+    than retryable.
+  operations:
+  - listBookings
+  - getBooking
+  - listAvailableSlots
+  - updateBooking
+  - cancelBooking
+  scopes:
+  - bookings:read
+  - bookings:write
+- name: agendapro-cart-checkout
+  file: skills/agendapro-cart-checkout.md
+  description: Build a cart, raise an online payment request, hand over the checkout URL, and release reserved bookings
+    on abandonment.
+  operations:
+  - createCart
+  - getCart
+  - updateCart
+  - createPaymentRequest
+  - cancelPaymentRequest
+  - listSales
+  - getSale
+  scopes:
+  - carts:write
+  - payment_requests:write
+  - sales:read

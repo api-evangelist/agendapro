@@ -1,0 +1,74 @@
+generated: '2026-09-12'
+method: searched
+source: https://developers.agendapro.com/reference/getting-started-v3
+versioning:
+  scheme: major version in the URL path
+  current: v3
+  path_prefix: /v3
+  spec_version: 3.0.0 (OpenAPI info.version)
+  header_versioning: false
+  date_versioning: false
+  policy_published: false
+  policy_note: No written versioning or backwards-compatibility policy is published — only the fact that the current
+    surface is v3.
+deprecation:
+  policy_published: false
+  policy_url: null
+  sunset_header_rfc8594: false
+  deprecation_header_rfc8594: false
+  deprecated_operations: []
+  deprecated_operation_count: 0
+  note: 'No operation in the OpenAPI carries deprecated: true, and no Sunset/Deprecation response header is declared.
+    AgendaPro has nonetheless retired a prior API generation in place: the older reference pages still indexed by
+    search engines — /reference/getting-started-with-your-api, /reference/crear-un-pago, /reference/crear-un-cliente
+    — now return 404 on the developer portal, with no tombstone, no migration guide and no redirect to the v3 equivalents.
+    That is an unannounced retirement, which is exactly what a deprecation policy exists to prevent.'
+  evidence:
+  - url: https://developers.agendapro.com/reference/getting-started-with-your-api
+    status: 404
+    note: Legacy public-API landing page, still surfaced by search engines; now removed.
+  - url: https://developers.agendapro.com/changelog
+    status: 404
+  - url: https://developers.agendapro.com/docs/changelog
+    status: 404
+status_page:
+  published: true
+  url: https://status.agendapro.com/
+  provider: Better Stack
+  http_status: 200
+  machine_readable_feed: false
+  note: A live hosted status page is served. It is a Better Stack page, so the Atlassian Statuspage /api/v2/*.json
+    endpoints do not exist; no machine-readable incident feed was found.
+sla:
+  published: false
+  note: No uptime SLA, credit schedule or support-response commitment is published for the API. Personalized support
+    is listed as a Pro-plan feature on the pricing page, without numbers.
+changelog:
+  published: false
+  note: No dated API changelog or release-notes page exists — /changelog and /docs/changelog both 404. The only
+    dated signal on the developer portal is the per-page updatedAt stamp carried in each markdown export, and the
+    ReadMe API-definition record for platform-connect-v3.json.
+  observed_dates:
+  - what: OpenAPI definition first uploaded to the developer portal
+    date: '2026-03-27'
+  - what: OpenAPI definition last updated
+    date: '2026-08-18'
+  - what: Getting Started guide last updated
+    date: '2026-08-20'
+  - what: Connect v3 reference landing last updated
+    date: '2026-08-20'
+  - what: Webhooks guide last updated
+    date: '2026-07-22'
+  - what: Authentication guide last updated
+    date: '2026-03-27'
+  source: https://developers.agendapro.com/docs/getting-started.md
+support:
+  help_center: https://ayuda.agendapro.com/
+  developer_support: Pro-plan personalized support
+  public_issue_tracker: false
+  community_forum: false
+maturity:
+  stage: generally available
+  public_signup_for_api: false
+  gate: API keys require an active Pro plan; there is no free or self-serve developer tier, so the contract is readable
+    by anyone but callable only by paying merchants.

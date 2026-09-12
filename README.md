@@ -1,4 +1,4 @@
-# Agendapro
+# AgendaPro
 
 <!-- API-EVANGELIST-PROVENANCE:BEGIN -->
 > ### About this repository
@@ -64,5 +64,31 @@
 > Full detail: **[Where this data comes from](https://apievangelist.com/about/where-our-data-comes-from)**
 <!-- API-EVANGELIST-PROVENANCE:END -->
 
-Agendapro is a company surfaced via the API Evangelist harvest backlog (source: secondary-market) and added to the network as a stub for full-pipeline profiling.
-- https://equityzen.com/company/agendapro
+AgendaPro is a Latin American vertical SaaS platform for appointment-based service businesses — salons, barbershops, spas, aesthetic and medical clinics, gyms, veterinarians and wellness studios — combining online booking, calendar and staff scheduling, client CRM and treatment records, point of sale, inventory, commissions, marketing campaigns and WhatsApp/SMS/email reminders, plus online payments and gift cards. Founded in Chile and operating across Chile, Mexico, Colombia, Peru, Argentina, Brazil and Spain, it serves multi-location merchants from a single account. Its public developer surface is the Connect v3 API, an OpenAPI 3.0.3-described REST gateway at connect.agendapro.com that exposes bookings, availability slots, clients, custom attributes, locations, services, categories, service providers, sales, carts and online payment requests, with Bearer API-key auth, scoped keys, per-minute and per-day rate limiting, and HMAC-signed webhooks. API access requires an active Pro plan.
+
+## API
+
+**AgendaPro Connect v3 API** — `https://connect.agendapro.com`
+
+- Documentation: https://developers.agendapro.com/reference/getting-started-v3
+- OpenAPI 3.0.3 — 23 paths, 28 operations, 43 component schemas: `openapi/agendapro-connect-v3-openapi.yml`
+- Authentication: per-company Bearer API key (`apk_live_`), Pro plan required
+- Rate limits: 70 requests/minute burst, 10,000/day per company
+- Webhooks: 6 events, HMAC-SHA256 signed
+
+## Links
+
+- Website: https://agendapro.com/
+- DeveloperPortal: https://developers.agendapro.com/
+- Documentation: https://developers.agendapro.com/docs/getting-started
+- APIReference: https://developers.agendapro.com/reference/getting-started-v3
+- GettingStarted: https://developers.agendapro.com/docs/getting-started
+- Support: https://ayuda.agendapro.com/
+- Blog: https://agendapro.com/blog
+- Pricing: https://agendapro.com/en/planes
+- SignUp: https://agendapro.com/lead/registro
+- Login: https://app.agendapro.com/users/sign_in
+- TermsOfService: https://agendapro.com/en/terminos-y-condiciones
+- PrivacyPolicy: https://agendapro.com/en/politica-de-privacidad
+- StatusPage: https://status.agendapro.com/
+- GitHubOrganization: https://github.com/agendapro

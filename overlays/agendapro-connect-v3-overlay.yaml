@@ -1,0 +1,114 @@
+overlay: 1.0.0
+info:
+  title: API Evangelist enrichment overlay for AgendaPro Connect v3
+  version: 1.0.0
+extends: openapi/agendapro-connect-v3-openapi.yml
+x-generated: '2026-09-12'
+x-method: generated
+x-source: derived from API Evangelist enrichment artifacts in this repository; the original spec is not mutated
+actions:
+- target: $.info
+  description: Record the enrichment provenance and the artifacts derived from this spec.
+  update:
+    x-apievangelist:
+      profile: https://apis.io/provider/agendapro
+      enriched: '2026-09-12'
+      artifacts:
+      - authentication/agendapro-authentication.yml
+      - scopes/agendapro-scopes.yml
+      - conventions/agendapro-conventions.yml
+      - errors/agendapro-problem-types.yml
+      - data-model/agendapro-data-model.yml
+      - rate-limits/agendapro-rate-limits.yml
+      - lifecycle/agendapro-lifecycle.yml
+      - asyncapi/agendapro-webhooks.yml
+      - skills/_index.yml
+- target: $.info
+  description: State the published rate limits, which the spec describes qualitatively ("Maximum requests per minute")
+    without values.
+  update:
+    x-rate-limits:
+      burst:
+        window: 1 minute
+        limit: 70
+      daily:
+        window: 1 day
+        limit: 10000
+      scope: per-company
+      source: https://developers.agendapro.com/docs/getting-started
+- target: $.info
+  description: Declare the absence of replay protection on the mutating surface, which the spec does not mention
+    at all.
+  update:
+    x-idempotency:
+      coverage: none
+      write_operations: 9
+      protected_operations: 0
+      source: conventions/agendapro-conventions.yml
+- target: $.info
+  description: Declare the reversal path and window for each consequential write.
+  update:
+    x-reversibility:
+      grade: documented
+      reversals:
+      - operation: createBooking
+        reversal: cancelBooking
+        window: merchant-configured, value not published
+      - operation: createClient
+        reversal: deactivateClient
+        window: none stated
+      - operation: createCart
+        reversal: expiry only
+        window: 24 hours
+      - operation: createPaymentRequest
+        reversal: cancelPaymentRequest
+        window: approximately 15 minutes
+      source: conventions/agendapro-conventions.yml
+- target: $.info
+  description: 'Declare the webhook event surface, which is documented on the portal but absent from the OpenAPI
+    (no webhooks: object is defined).'
+  update:
+    x-webhooks-catalog:
+      events:
+      - booking.created
+      - booking.updated
+      - client.created
+      - client.updated
+      - payment_request.paid
+      - payment_request.expired
+      signature:
+        header: X-Webhook-Signature
+        algorithm: HMAC-SHA256
+      source: asyncapi/agendapro-webhooks.yml
+- target: $.components.securitySchemes['BearerAuth']
+  description: Record the key prefix, plan gate and key-management constraints documented outside the spec.
+  update:
+    x-key-prefix: apk_live_
+    x-requires-plan: Pro
+    x-max-active-keys: 2
+    x-shown-once: true
+    x-issued-from: Configuraciones > Integraciones
+    x-source: https://developers.agendapro.com/docs/authentication
+- target: $.components.schemas.ErrorDetailResponse
+  description: Record that the error envelope is a vendor shape, not RFC 9457, and point at the full catalogue.
+  update:
+    x-error-format: vendor
+    x-rfc9457: false
+    x-catalog: errors/agendapro-problem-types.yml
+    x-error-count: 30
+- target: $.tags
+  description: Note that seven of the eleven tagged resources are read-only over the public API.
+  update:
+    x-writable-resources:
+    - Bookings
+    - Clients
+    - Carts
+    - Payment Requests
+    x-readonly-resources:
+    - Available Slots
+    - Custom Attributes
+    - Locations
+    - Services
+    - Providers
+    - Sales
+    - Categories

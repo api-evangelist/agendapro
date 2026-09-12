@@ -1,0 +1,274 @@
+generated: '2026-09-12'
+method: derived
+source: openapi/agendapro-connect-v3-openapi.yml
+status: candidate
+status_note: AgendaPro operates NO MCP server. Searched the developer portal, the llms.txt index (0 occurrences
+  of "mcp" or "model context"), the agendapro GitHub organization, npm and the public MCP registries. The tools
+  below are a candidate projection of the Connect v3 OpenAPI, not a server anyone ships.
+deployment:
+  mode: none
+  endpoint: null
+  install: null
+  package: null
+  auth: api-key
+  verified: searched
+  note: 'mode: none — no hosted endpoint and no stdio package exists. If AgendaPro were to ship one, the natural
+    auth is the existing per-company Bearer API key.'
+tool_count: 28
+tools:
+- name: listAvailableSlots
+  description: List Available Slots
+  rest:
+    method: GET
+    path: /v3/available_slots
+    operationId: listAvailableSlots
+  tags:
+  - Available Slots
+  mutating: false
+- name: listBookings
+  description: List Bookings
+  rest:
+    method: GET
+    path: /v3/bookings
+    operationId: listBookings
+  tags:
+  - Bookings
+  mutating: false
+- name: createBooking
+  description: Create Booking
+  rest:
+    method: POST
+    path: /v3/bookings
+    operationId: createBooking
+  tags:
+  - Bookings
+  mutating: true
+- name: getBooking
+  description: Get Booking
+  rest:
+    method: GET
+    path: /v3/bookings/{id}
+    operationId: getBooking
+  tags:
+  - Bookings
+  mutating: false
+- name: updateBooking
+  description: Update Booking
+  rest:
+    method: PATCH
+    path: /v3/bookings/{id}
+    operationId: updateBooking
+  tags:
+  - Bookings
+  mutating: true
+- name: cancelBooking
+  description: Cancel Booking
+  rest:
+    method: PATCH
+    path: /v3/bookings/{id}/cancel
+    operationId: cancelBooking
+  tags:
+  - Bookings
+  mutating: true
+- name: listClients
+  description: List Clients
+  rest:
+    method: GET
+    path: /v3/clients
+    operationId: listClients
+  tags:
+  - Clients
+  mutating: false
+- name: createClient
+  description: Create Client
+  rest:
+    method: POST
+    path: /v3/clients
+    operationId: createClient
+  tags:
+  - Clients
+  mutating: true
+- name: quickSearchClients
+  description: Quick Search Clients
+  rest:
+    method: GET
+    path: /v3/clients/quick-search
+    operationId: quickSearchClients
+  tags:
+  - Clients
+  mutating: false
+- name: getClient
+  description: Get Client
+  rest:
+    method: GET
+    path: /v3/clients/{id}
+    operationId: getClient
+  tags:
+  - Clients
+  mutating: false
+- name: updateClient
+  description: Update Client
+  rest:
+    method: PATCH
+    path: /v3/clients/{id}
+    operationId: updateClient
+  tags:
+  - Clients
+  mutating: true
+- name: deactivateClient
+  description: Deactivate Client
+  rest:
+    method: PATCH
+    path: /v3/clients/{id}/deactivate
+    operationId: deactivateClient
+  tags:
+  - Clients
+  mutating: true
+- name: listClientCustomAttributes
+  description: List Client Custom Attributes
+  rest:
+    method: GET
+    path: /v3/clients/{id}/custom_attributes
+    operationId: listClientCustomAttributes
+  tags:
+  - Clients
+  mutating: false
+- name: listCustomAttributeTemplates
+  description: List Custom Attribute Templates
+  rest:
+    method: GET
+    path: /v3/custom_attributes
+    operationId: listCustomAttributeTemplates
+  tags:
+  - Custom Attributes
+  mutating: false
+- name: listLocations
+  description: List Locations
+  rest:
+    method: GET
+    path: /v3/locations
+    operationId: listLocations
+  tags:
+  - Locations
+  mutating: false
+- name: getLocation
+  description: Get Location
+  rest:
+    method: GET
+    path: /v3/locations/{id}
+    operationId: getLocation
+  tags:
+  - Locations
+  mutating: false
+- name: listServices
+  description: List Services
+  rest:
+    method: GET
+    path: /v3/services
+    operationId: listServices
+  tags:
+  - Services
+  mutating: false
+- name: getService
+  description: Get Service
+  rest:
+    method: GET
+    path: /v3/services/{id}
+    operationId: getService
+  tags:
+  - Services
+  mutating: false
+- name: listCategories
+  description: List Categories
+  rest:
+    method: GET
+    path: /v3/categories
+    operationId: listCategories
+  tags:
+  - Services
+  mutating: false
+- name: listProviders
+  description: List Providers
+  rest:
+    method: GET
+    path: /v3/providers
+    operationId: listProviders
+  tags:
+  - Providers
+  mutating: false
+- name: getProvider
+  description: Get Provider
+  rest:
+    method: GET
+    path: /v3/providers/{id}
+    operationId: getProvider
+  tags:
+  - Providers
+  mutating: false
+- name: listSales
+  description: List Sales
+  rest:
+    method: GET
+    path: /v3/sales
+    operationId: listSales
+  tags:
+  - Sales
+  mutating: false
+- name: getSale
+  description: Get Sale
+  rest:
+    method: GET
+    path: /v3/sales/{id}
+    operationId: getSale
+  tags:
+  - Sales
+  mutating: false
+- name: createCart
+  description: Create Cart
+  rest:
+    method: POST
+    path: /v3/carts
+    operationId: createCart
+  tags:
+  - Carts
+  mutating: true
+- name: getCart
+  description: Get Cart
+  rest:
+    method: GET
+    path: /v3/carts/{id}
+    operationId: getCart
+  tags:
+  - Carts
+  mutating: false
+- name: updateCart
+  description: Update Cart
+  rest:
+    method: PATCH
+    path: /v3/carts/{id}
+    operationId: updateCart
+  tags:
+  - Carts
+  mutating: true
+- name: createPaymentRequest
+  description: Create Payment Request (online checkout)
+  rest:
+    method: POST
+    path: /v3/carts/{id}/payment_requests
+    operationId: createPaymentRequest
+  tags:
+  - Payment Requests
+  mutating: true
+- name: cancelPaymentRequest
+  description: Cancel Payment Request
+  rest:
+    method: PATCH
+    path: /v3/payment_requests/{id}/cancel
+    operationId: cancelPaymentRequest
+  tags:
+  - Payment Requests
+  mutating: true
+derivation_note: Each candidate tool inherits its inputSchema from the backing operation's parameters and requestBody
+  in the OpenAPI. Nine tools are mutating (createBooking, updateBooking, cancelBooking, createClient, updateClient,
+  deactivateClient, createCart, updateCart, createPaymentRequest, cancelPaymentRequest) and none of them has idempotency
+  protection — an MCP host wrapping this API should treat every write as non-replayable. See conventions/agendapro-conventions.yml.

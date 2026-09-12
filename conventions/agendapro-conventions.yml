@@ -1,0 +1,186 @@
+generated: '2026-09-12'
+method: searched
+source: https://developers.agendapro.com/docs/getting-started + openapi/agendapro-connect-v3-openapi.yml
+docs: https://developers.agendapro.com/docs/getting-started
+api: AgendaPro Connect v3
+base_url: https://connect.agendapro.com
+auth:
+  style: bearer-api-key
+  header: Authorization
+  format: Bearer <apk_live_...>
+  tenancy: company is derived from the key; no company_id parameter exists
+  https_required: true
+  detail: authentication/agendapro-authentication.yml
+idempotency:
+  supported: false
+  coverage: none
+  mechanism: null
+  header: null
+  retention: null
+  evidence: No Idempotency-Key header, request-id de-duplication, client-supplied reference, or replay window appears
+    anywhere in the OpenAPI (0 of 28 operations declare one) or in the published guides. The word "idempotencia"
+    appears once in the docs, in the WEBHOOKS page, advising the CONSUMER to de-duplicate inbound deliveries by
+    resource id — that is consumer-side dedupe of AgendaPro's outbound calls, not replay protection on AgendaPro's
+    own write endpoints.
+  write_operations: 9
+  protected_operations: 0
+  risk: The unprotected writes include createBooking, createClient, createCart and createPaymentRequest. A retried
+    createBooking after a timeout will create a second booking; a retried createPaymentRequest explicitly cancels
+    the previous pending one, which is a documented side effect rather than a no-op.
+  source: https://developers.agendapro.com/docs/webhooks
+reversibility:
+  grade: documented
+  grade_rationale: Every consequential write has a published reversal operation, and the payment/cart surface states
+    real time windows. The primary write surface — bookings — has a reversal window that is real but MERCHANT-CONFIGURED
+    and never published as a value, so an agent cannot compute in advance whether a cancellation will be accepted.
+    That falls short of `verified`.
+  write_surfaces:
+  - operation: createBooking
+    reversal: cancelBooking
+    reversal_operation: PATCH /v3/bookings/{id}/cancel
+    window: merchant-configured, value not published
+    window_detail: Rejected with 422 restricted / before_edit_booking once the booking is inside the merchant pre-start
+      lock window. The length of that window is set per merchant in Configuraciones > Sitio web > Edicion y cancelacion
+      de reservas en linea and is not exposed through the API or the docs.
+    other_blockers:
+    - 422 restricted / can_cancel — merchant disabled customer-flow cancellation
+    - 422 restricted / max_changes — booking hit the merchant change limit
+    docs: https://developers.agendapro.com/reference/cancelbooking
+  - operation: updateBooking
+    reversal: re-issue updateBooking with the prior values
+    reversal_operation: PATCH /v3/bookings/{id}
+    window: merchant-configured, value not published
+    window_detail: Same can_edit / before_edit_booking / max_changes policy gate as cancellation; each reversal
+      also consumes one of the merchant-allowed changes.
+    docs: https://developers.agendapro.com/reference/updatebooking
+  - operation: createClient
+    reversal: deactivateClient
+    reversal_operation: PATCH /v3/clients/{id}/deactivate
+    window: none stated — deactivation is available at any time
+    window_detail: Soft delete. Re-activation is not exposed through the public API, so deactivation is one-way
+      from an integrator perspective. Repeat calls return 422 client_already_deactivated.
+    docs: https://developers.agendapro.com/reference/deactivateclient
+  - operation: createCart
+    reversal: expiry (no explicit delete operation)
+    reversal_operation: null
+    window: 24 hours
+    window_detail: A cart older than 24 hours is rejected with 422 cart_expired. There is no DELETE /v3/carts/{id}.
+    docs: https://developers.agendapro.com/reference/updatecart
+  - operation: createPaymentRequest
+    reversal: cancelPaymentRequest
+    reversal_operation: PATCH /v3/payment_requests/{id}/cancel
+    window: approximately 15 minutes
+    window_detail: params.expires_at is set about 15 minutes out when the cart contains on-demand booking instances.
+      Cancelling releases the reserved bookings immediately instead of waiting for expiry; after expiry the request
+      lapses and the bookings are released automatically. Cancellation requires status `pending` (422 payment_request_invalid_status
+      otherwise).
+    docs: https://developers.agendapro.com/reference/cancelpaymentrequest
+  refunds:
+    supported: false
+    note: No refund, void or chargeback operation is exposed. Sales are read-only through the public API (listSales,
+      getSale); money movement is reversed inside the AgendaPro product, not over this API.
+  source: https://developers.agendapro.com/llms.txt
+dry_run_mode:
+  supported: false
+  note: 'No preview, validate-only, simulate or dry-run parameter is published on any write operation. listAvailableSlots
+    is the closest rehearsal surface: it tells an agent whether a slot exists before createBooking, but it does
+    not validate the booking payload.'
+pagination:
+  style: page-number
+  params:
+  - name: page
+    in: query
+    type: integer
+    default: 1
+  - name: per_page
+    in: query
+    type: integer
+    default: 30
+    max: 100
+  response_envelope: data[] + pagination{}
+  response_fields:
+  - current_page
+  - per_page
+  - next_page
+  - prev_page
+  - total_records
+  - total_pages
+  cursor_support: false
+  link_header: false
+  applies_to:
+  - listBookings
+  - listClients
+  - listLocations
+  - listServices
+  - listProviders
+  - listSales
+  - listCategories
+  - listCustomAttributeTemplates
+  note: quickSearchClients returns a ranked, non-paginated result set intended for type-ahead.
+  source: https://developers.agendapro.com/docs/getting-started
+field_expansion:
+  supported: false
+  note: No expand/include/fields parameter is published. Related objects are embedded at a fixed depth chosen by
+    the endpoint (a Booking embeds BookingService, BookingServiceProvider and BookingSale).
+sparse_fieldsets:
+  supported: false
+filtering:
+  supported: true
+  style: named query parameters
+  note: listBookings REQUIRES at least one entity filter (client_id, location_id, service_id or service_provider_id);
+    start_date/end_date narrow but do not satisfy it — 400 required/params otherwise.
+sorting:
+  supported: false
+  note: No sort/order parameter is published.
+metadata:
+  supported: true
+  mechanism: custom attributes
+  note: Merchant-defined custom attributes are read through listCustomAttributeTemplates and listClientCustomAttributes.
+    They are read-only over the public API.
+request_id_tracing:
+  supported: false
+  note: No request-id or correlation-id response header is documented, and none is declared in the OpenAPI. There
+    is no published way to quote a specific failed call back to support.
+versioning:
+  style: path
+  current: v3
+  path_prefix: /v3
+  in_header: false
+  date_versioning: false
+  detail: lifecycle/agendapro-lifecycle.yml
+error_envelope:
+  shape: '{error, detail}'
+  rfc9457: false
+  detail: errors/agendapro-problem-types.yml
+rate_limit_signaling:
+  headers:
+  - X-RateLimit-Limit
+  - X-RateLimit-Remaining
+  - X-RateLimit-Reset
+  - X-RateLimit-Burst-Limit
+  - X-RateLimit-Burst-Remaining
+  - X-RateLimit-Burst-Reset
+  - Retry-After
+  status: 429
+  detail: rate-limits/agendapro-rate-limits.yml
+data_formats:
+  request: application/json
+  response: application/json
+  timestamps: ISO 8601 with offset (e.g. 2026-03-28T10:00:00-03:00)
+  dates: ISO 8601 date (YYYY-MM-DD)
+  phone: E.164
+  email: normalized to lowercase on write
+  ids: integer, not prefixed strings
+partial_update:
+  supported: true
+  method: PATCH
+  note: All updates are PATCH with merge semantics — only provided fields change. There is no PUT.
+webhooks:
+  detail: asyncapi/agendapro-webhooks.yml
+cross_links:
+- errors/agendapro-problem-types.yml
+- lifecycle/agendapro-lifecycle.yml
+- authentication/agendapro-authentication.yml
+- rate-limits/agendapro-rate-limits.yml
+- scopes/agendapro-scopes.yml
+- asyncapi/agendapro-webhooks.yml

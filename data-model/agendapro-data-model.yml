@@ -1,0 +1,460 @@
+generated: '2026-09-12'
+method: derived
+source: openapi/agendapro-connect-v3-openapi.yml
+entity_count: 13
+schema_count: 43
+relationship_count: 70
+identifiers:
+  style: bare integers
+  prefixed_ids: false
+  note: Every resource id is a plain integer scoped to the company; there are no Stripe-style typed prefixes, so
+    an id is ambiguous out of context and an agent must track the resource type alongside it.
+  tenancy: company_id is never exposed as a field or parameter — it is implied by the API key.
+core_entities:
+- name: Location
+  description: A physical branch of the merchant. Root of the availability graph.
+  operations:
+  - listLocations
+  - getLocation
+  writable: false
+- name: ServiceDetail
+  description: A bookable service with duration, price and category.
+  operations:
+  - listServices
+  - getService
+  writable: false
+- name: Category
+  description: Grouping of services.
+  operations:
+  - listCategories
+  writable: false
+- name: Provider
+  description: A service provider / professional who performs services at a location.
+  operations:
+  - listProviders
+  - getProvider
+  writable: false
+- name: Client
+  description: The merchant customer record (CRM). Soft-deletable.
+  operations:
+  - listClients
+  - getClient
+  - quickSearchClients
+  - createClient
+  - updateClient
+  - deactivateClient
+  writable: true
+- name: Booking
+  description: An appointment binding a client, a service, a provider and a location to a time window.
+  operations:
+  - listBookings
+  - getBooking
+  - createBooking
+  - updateBooking
+  - cancelBooking
+  writable: true
+- name: AvailableSlot
+  description: A derived, non-persisted time window offered for a service at a location.
+  operations:
+  - listAvailableSlots
+  writable: false
+- name: Cart
+  description: A basket of service and product items assembled before checkout. Expires in 24h.
+  operations:
+  - createCart
+  - getCart
+  - updateCart
+  writable: true
+- name: PaymentRequest
+  description: An online checkout request against a cart, returning a hosted checkout_url. Expires in ~15 minutes
+    when it reserves bookings.
+  operations:
+  - createPaymentRequest
+  - cancelPaymentRequest
+  writable: true
+- name: Sale
+  description: A completed transaction with its transactions[]. Read-only.
+  operations:
+  - listSales
+  - getSale
+  writable: false
+- name: CustomAttributeTemplate
+  description: Merchant-defined attribute definition, grouped by AttributeGroup and AttributeCategory.
+  operations:
+  - listCustomAttributeTemplates
+  writable: false
+- name: CustomAttribute
+  description: A custom attribute value on a client.
+  operations:
+  - listClientCustomAttributes
+  writable: false
+relationships:
+- from: Booking
+  to: status
+  kind: belongs_to
+  via: status_id
+  evidence: id-reference field
+- from: Booking
+  to: BookingStatus
+  kind: has_one
+  via: status
+  evidence: $ref
+- from: Booking
+  to: service
+  kind: belongs_to
+  via: service_id
+  evidence: id-reference field
+- from: Booking
+  to: BookingService
+  kind: has_one
+  via: service
+  evidence: $ref
+- from: Booking
+  to: service_provider
+  kind: belongs_to
+  via: service_provider_id
+  evidence: id-reference field
+- from: Booking
+  to: BookingServiceProvider
+  kind: has_one
+  via: service_provider
+  evidence: $ref
+- from: Booking
+  to: client
+  kind: belongs_to
+  via: client_id
+  evidence: id-reference field
+- from: Booking
+  to: location
+  kind: belongs_to
+  via: location_id
+  evidence: id-reference field
+- from: Booking
+  to: time_resource
+  kind: belongs_to
+  via: time_resource_id
+  evidence: id-reference field
+- from: Booking
+  to: company
+  kind: belongs_to
+  via: company_id
+  evidence: id-reference field
+- from: Booking
+  to: BookingSale
+  kind: has_one
+  via: sale
+  evidence: $ref
+- from: BookingSale
+  to: cart
+  kind: belongs_to
+  via: cart_id
+  evidence: id-reference field
+- from: BookingListResponse
+  to: Pagination
+  kind: has_one
+  via: pagination
+  evidence: $ref
+- from: BookingListResponse
+  to: Booking
+  kind: has_many
+  via: data
+  evidence: $ref array
+- from: CreateBookingRequest
+  to: service
+  kind: belongs_to
+  via: service_id
+  evidence: id-reference field
+- from: CreateBookingRequest
+  to: provider
+  kind: belongs_to
+  via: provider_id
+  evidence: id-reference field
+- from: CreateBookingRequest
+  to: client
+  kind: belongs_to
+  via: client_id
+  evidence: id-reference field
+- from: CreateBookingRequest
+  to: location
+  kind: belongs_to
+  via: location_id
+  evidence: id-reference field
+- from: CreateBookingRequest
+  to: status
+  kind: belongs_to
+  via: status_id
+  evidence: id-reference field
+- from: CreateBookingRequest
+  to: time_resource
+  kind: belongs_to
+  via: time_resource_id
+  evidence: id-reference field
+- from: UpdateBookingRequest
+  to: service
+  kind: belongs_to
+  via: service_id
+  evidence: id-reference field
+- from: UpdateBookingRequest
+  to: provider
+  kind: belongs_to
+  via: provider_id
+  evidence: id-reference field
+- from: UpdateBookingRequest
+  to: client
+  kind: belongs_to
+  via: client_id
+  evidence: id-reference field
+- from: UpdateBookingRequest
+  to: location
+  kind: belongs_to
+  via: location_id
+  evidence: id-reference field
+- from: UpdateBookingRequest
+  to: status
+  kind: belongs_to
+  via: status_id
+  evidence: id-reference field
+- from: UpdateBookingRequest
+  to: time_resource
+  kind: belongs_to
+  via: time_resource_id
+  evidence: id-reference field
+- from: AvailableSlot
+  to: provider
+  kind: belongs_to
+  via: provider_id
+  evidence: id-reference field
+- from: AvailableSlotsMetadata
+  to: location
+  kind: belongs_to
+  via: location_id
+  evidence: id-reference field
+- from: AvailableSlotsMetadata
+  to: service
+  kind: belongs_to
+  via: service_id
+  evidence: id-reference field
+- from: ClientListResponse
+  to: Pagination
+  kind: has_one
+  via: pagination
+  evidence: $ref
+- from: ClientListResponse
+  to: Client
+  kind: has_many
+  via: data
+  evidence: $ref array
+- from: ClientQuickSearchResponse
+  to: ClientQuickSearchResult
+  kind: has_many
+  via: data
+  evidence: $ref array
+- from: CustomAttributeTemplate
+  to: AttributeGroup
+  kind: has_one
+  via: attribute_group
+  evidence: $ref
+- from: CustomAttributeTemplate
+  to: AttributeCategory
+  kind: has_many
+  via: attribute_categories
+  evidence: $ref array
+- from: Location
+  to: LocationImage
+  kind: has_one
+  via: image
+  evidence: $ref
+- from: Location
+  to: company
+  kind: belongs_to
+  via: company_id
+  evidence: id-reference field
+- from: Location
+  to: country
+  kind: belongs_to
+  via: country_id
+  evidence: id-reference field
+- from: Location
+  to: LocationTime
+  kind: has_many
+  via: times
+  evidence: $ref array
+- from: LocationTime
+  to: day
+  kind: belongs_to
+  via: day_id
+  evidence: id-reference field
+- from: LocationListResponse
+  to: Pagination
+  kind: has_one
+  via: pagination
+  evidence: $ref
+- from: LocationListResponse
+  to: Location
+  kind: has_many
+  via: data
+  evidence: $ref array
+- from: ServiceDetail
+  to: ServiceImage
+  kind: has_many
+  via: images
+  evidence: $ref array
+- from: ServiceDetail
+  to: location
+  kind: belongs_to
+  via: location_id
+  evidence: id-reference field
+- from: ServiceDetail
+  to: company
+  kind: belongs_to
+  via: company_id
+  evidence: id-reference field
+- from: ServiceIndex
+  to: location
+  kind: belongs_to
+  via: location_id
+  evidence: id-reference field
+- from: ServiceIndex
+  to: company
+  kind: belongs_to
+  via: company_id
+  evidence: id-reference field
+- from: ServiceListResponse
+  to: Pagination
+  kind: has_one
+  via: pagination
+  evidence: $ref
+- from: ServiceListResponse
+  to: ServiceIndex
+  kind: has_many
+  via: data
+  evidence: $ref array
+- from: Provider
+  to: company
+  kind: belongs_to
+  via: company_id
+  evidence: id-reference field
+- from: Provider
+  to: location
+  kind: belongs_to
+  via: location_id
+  evidence: id-reference field
+- from: Provider
+  to: ProviderTime
+  kind: has_many
+  via: provider_times
+  evidence: $ref array
+- from: ProviderTime
+  to: day
+  kind: belongs_to
+  via: day_id
+  evidence: id-reference field
+- from: ProviderListResponse
+  to: Pagination
+  kind: has_one
+  via: pagination
+  evidence: $ref
+- from: ProviderListResponse
+  to: Provider
+  kind: has_many
+  via: data
+  evidence: $ref array
+- from: Sale
+  to: cart
+  kind: belongs_to
+  via: cart_id
+  evidence: id-reference field
+- from: Sale
+  to: client
+  kind: belongs_to
+  via: client_id
+  evidence: id-reference field
+- from: Sale
+  to: location
+  kind: belongs_to
+  via: location_id
+  evidence: id-reference field
+- from: Sale
+  to: SaleTransaction
+  kind: has_many
+  via: transactions
+  evidence: $ref array
+- from: SaleListResponse
+  to: Pagination
+  kind: has_one
+  via: pagination
+  evidence: $ref
+- from: SaleListResponse
+  to: Sale
+  kind: has_many
+  via: data
+  evidence: $ref array
+- from: CartItemInput
+  to: item
+  kind: belongs_to
+  via: item_id
+  evidence: id-reference field
+- from: CartInput
+  to: client
+  kind: belongs_to
+  via: client_id
+  evidence: id-reference field
+- from: CartInput
+  to: location
+  kind: belongs_to
+  via: location_id
+  evidence: id-reference field
+- from: CartInput
+  to: CartItemInput
+  kind: has_many
+  via: items
+  evidence: $ref array
+- from: CartUpdateInput
+  to: client
+  kind: belongs_to
+  via: client_id
+  evidence: id-reference field
+- from: CartUpdateInput
+  to: CartItemInput
+  kind: has_many
+  via: items
+  evidence: $ref array
+- from: Cart
+  to: client
+  kind: belongs_to
+  via: client_id
+  evidence: id-reference field
+- from: Cart
+  to: location
+  kind: belongs_to
+  via: location_id
+  evidence: id-reference field
+- from: CategoryListResponse
+  to: Pagination
+  kind: has_one
+  via: pagination
+  evidence: $ref
+- from: CategoryListResponse
+  to: Category
+  kind: has_many
+  via: data
+  evidence: $ref array
+flows:
+- name: book an appointment
+  path:
+  - Location
+  - ServiceDetail
+  - AvailableSlot
+  - Client
+  - Booking
+- name: sell and collect online
+  path:
+  - Cart
+  - PaymentRequest
+  - Sale
+notes:
+- Seven of the twelve core entities are read-only through the public API. The writable surface is bookings, clients,
+  carts and payment requests — the API is built for booking and checkout automation, not for catalogue or staff
+  administration.
+- BookingSale links a Booking to its Sale, which is the only bridge between the scheduling graph and the commerce
+  graph.

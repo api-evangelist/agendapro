@@ -1,0 +1,61 @@
+generated: '2026-09-12'
+method: searched
+source: https://developers.agendapro.com/docs/authentication
+docs: https://developers.agendapro.com/docs/authentication
+summary:
+  types:
+  - http
+  model: Per-company API key presented as an HTTP Bearer token
+  oauth2: false
+  openid_connect: false
+  mtls: false
+schemes:
+- name: BearerAuth
+  type: http
+  scheme: bearer
+  description: 'API key issued per company. Pass as Authorization: Bearer <key>.'
+  header: Authorization
+  format: Bearer <api-key>
+  key_prefix: apk_live_
+  applied: globally (top-level security in the OpenAPI applies BearerAuth to all 28 operations)
+  sources:
+  - openapi/agendapro-connect-v3-openapi.yml
+  - https://developers.agendapro.com/docs/authentication
+key_management:
+  issued_from: Configuraciones > Integraciones in the AgendaPro web app
+  requires_plan: Pro
+  max_active_keys_per_company: 2
+  shown_once: true
+  shown_once_note: The full key is displayed only once at creation and cannot be retrieved again.
+  revocation: permanent and immediate
+  rotation_policy: not published
+  expiry: not published (keys do not carry a documented TTL)
+  tenancy: A key is scoped to a single company; company_id is derived from the key and is never passed as a parameter.
+  source: https://developers.agendapro.com/docs/authentication
+scopes:
+  supported: true
+  model: '{resource}:{action}'
+  empty_means_full_access: true
+  catalog: scopes/agendapro-scopes.yml
+transport:
+  https_required: true
+  http_rejected: true
+  source: https://developers.agendapro.com/docs/authentication
+failure_modes:
+- status: 401
+  error: unauthorized
+  detail: invalid_api_key
+  meaning: Missing or invalid Bearer token.
+- status: 401
+  error: unauthorized
+  detail: api_config_inactive
+  meaning: API access is inactive for this company.
+- status: 403
+  error: forbidden
+  detail: scope_denied
+  meaning: API key lacks the required scope.
+notes:
+- No OAuth 2.0, OpenID Connect, mTLS or signed-request option is published. A single static per-company bearer credential
+  is the whole authentication surface.
+- Webhook deliveries are authenticated in the opposite direction with an HMAC-SHA256 signature in X-Webhook-Signature;
+  see asyncapi/agendapro-webhooks.yml.

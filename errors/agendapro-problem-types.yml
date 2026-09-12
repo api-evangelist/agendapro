@@ -1,0 +1,258 @@
+generated: '2026-09-12'
+method: searched
+source: https://developers.agendapro.com/llms.txt (per-operation "Errors Dictionary" tables) + openapi/agendapro-connect-v3-openapi.yml
+docs: https://developers.agendapro.com/docs/getting-started
+format: vendor
+rfc9457: false
+rfc9457_note: AgendaPro does NOT use RFC 9457 problem+json. Every error response is application/json with a flat
+  two-field envelope {error, detail}; there is no type URI, title, status or instance member.
+envelope:
+  media_type: application/json
+  schema: ErrorDetailResponse
+  fields:
+  - name: error
+    type: string
+    required: true
+    description: Machine-readable error class.
+  - name: detail
+    type: string
+    required: false
+    description: Additional machine-readable context; empty for some classes.
+  example:
+    error: unauthorized
+    detail: invalid_api_key
+error_count: 30
+errors:
+- status: 400
+  error: bad_request
+  detail: missing_q
+  description: Query string `q` is required.
+  remediation: Supply the `q` query string.
+  retryable: false
+  terminal: false
+- status: 400
+  error: invalid_body
+  detail: expected_object
+  description: The request body must be a JSON object. Applies to create and update endpoints.
+  remediation: Send a JSON object as the request body.
+  retryable: false
+  terminal: false
+- status: 400
+  error: required
+  detail: params
+  description: No entity filter provided. Supply at least one of `client_id`, `location_id`, `service_id`, or `service_provider_id`.
+  remediation: Supply at least one of `client_id`, `location_id`, `service_id` or `service_provider_id`. Dates alone
+    do not satisfy the filter requirement.
+  retryable: false
+  terminal: false
+- status: 400
+  error: upstream (passthrough)
+  description: Item validation errors from platform-sales are passed through with legacy single-key codes (e.g.
+    `item_invalid_type`, `invalid_start_time`, `creative_source_not_public`); see the platform-sales carts documentation
+    for the full list.
+  remediation: Errors proxied from the internal platform-sales service use legacy single-key codes (for example
+    `item_invalid_type`, `invalid_start_time`, `creative_source_not_public`, `company_payments_disabled`, `booking_already_sold`)
+    and do NOT follow the {error, detail} envelope. Parse defensively.
+  retryable: false
+  terminal: false
+- status: 401
+  error: unauthorized
+  detail: api_config_inactive
+  description: API access is inactive for this company.
+  remediation: API access is switched off for the company. The merchant must re-enable it (Pro plan required).
+  retryable: false
+  terminal: true
+- status: 401
+  error: unauthorized
+  detail: invalid_api_key
+  description: Missing or invalid Bearer token.
+  remediation: 'Re-issue the API key from Configuraciones > Integraciones and send it as `Authorization: Bearer
+    <key>`.'
+  retryable: false
+  terminal: true
+- status: 403
+  error: forbidden
+  detail: scope_denied
+  description: API key lacks `bookings:read` scope.
+  remediation: Re-create the API key with the scope the operation requires, or leave scopes empty for full access.
+    Do not retry.
+  retryable: false
+  terminal: true
+- status: 404
+  error: cart_not_found
+  description: Cart not found for this company.
+  retryable: false
+  terminal: true
+- status: 404
+  error: location_not_found
+  description: Location not found or does not belong to the company.
+  retryable: false
+  terminal: true
+- status: 404
+  error: not_found
+  detail: booking
+  description: Booking not found.
+  retryable: false
+  terminal: true
+- status: 404
+  error: not_found
+  detail: client
+  description: Client not found.
+  retryable: false
+  terminal: true
+- status: 404
+  error: not_found
+  detail: location
+  description: Location not found.
+  retryable: false
+  terminal: true
+- status: 404
+  error: not_found
+  detail: provider
+  description: Provider not found.
+  retryable: false
+  terminal: true
+- status: 404
+  error: not_found
+  detail: sale
+  description: Sale not found.
+  retryable: false
+  terminal: true
+- status: 404
+  error: not_found
+  detail: service
+  description: Service not found.
+  retryable: false
+  terminal: true
+- status: 404
+  error: payment_request_not_found
+  description: Payment request not found for this company.
+  retryable: false
+  terminal: true
+- status: 422
+  error: cart_expired
+  description: The cart has expired (older than 24 hours).
+  remediation: Carts expire 24 hours after creation. Create a new cart and re-add the items.
+  retryable: false
+  terminal: false
+- status: 422
+  error: cart_paid
+  description: The cart already has a paid sale.
+  remediation: The cart already has a paid sale; create a new cart.
+  retryable: false
+  terminal: true
+- status: 422
+  error: company_payments_disabled
+  description: Online payments are not enabled for the company or the cart items are not payable online.
+  remediation: The merchant has not enabled online payments, or the cart items are not payable online. Terminal
+    for this cart.
+  retryable: false
+  terminal: true
+- status: 422
+  error: payment_request_invalid_status
+  description: The payment request is not in `pending` status.
+  remediation: Only a `pending` payment request can be cancelled.
+  retryable: false
+  terminal: true
+- status: 422
+  error: restricted
+  detail: before_edit_booking
+  description: Booking is within the merchant's pre-start lock window.
+  remediation: Terminal — the booking is inside the merchant pre-start lock window. Do not retry.
+  retryable: false
+  terminal: true
+- status: 422
+  error: restricted
+  detail: can_cancel
+  description: Merchant has disabled cancellations via the customer flow.
+  remediation: Terminal for this booking — the merchant disabled customer-flow cancellations. Do not retry.
+  retryable: false
+  terminal: true
+- status: 422
+  error: restricted
+  detail: can_edit
+  description: Merchant has disabled edits via the customer flow.
+  remediation: Terminal for this booking — the merchant disabled customer-flow edits. Surface as "the merchant does
+    not allow this change"; do not retry.
+  retryable: false
+  terminal: true
+- status: 422
+  error: restricted
+  detail: max_changes
+  description: Booking has reached the merchant's maximum number of changes.
+  remediation: Terminal — the booking hit the merchant maximum-changes limit. Do not retry.
+  retryable: false
+  terminal: true
+- status: 422
+  error: unprocessable_entity
+  detail: client_already_deactivated
+  description: Client is already deactivated.
+  remediation: No action needed; the client is already deactivated.
+  retryable: false
+  terminal: true
+- status: 422
+  error: upstream (passthrough)
+  description: Item validation errors from platform-sales are passed through with legacy single-key codes (e.g.
+    `item_invalid_type`, `invalid_start_time`, `creative_source_not_public`); see the platform-sales carts documentation
+    for the full list.
+  remediation: Errors proxied from the internal platform-sales service use legacy single-key codes (for example
+    `item_invalid_type`, `invalid_start_time`, `creative_source_not_public`, `company_payments_disabled`, `booking_already_sold`)
+    and do NOT follow the {error, detail} envelope. Parse defensively.
+  retryable: false
+  terminal: false
+- status: 429
+  error: rate_limited
+  detail: burst_limit_exceeded
+  description: Per-minute request limit exceeded.
+  remediation: Back off for the `Retry-After` interval; stay under 70 requests/minute.
+  retryable: true
+  terminal: false
+- status: 429
+  error: rate_limited
+  detail: daily_quota_exceeded
+  description: Daily request quota exceeded.
+  remediation: Stop until `X-RateLimit-Reset`; the 10,000/day quota is per company.
+  retryable: true
+  terminal: false
+- status: 500
+  error: internal_server_error
+  description: Unexpected server error.
+  remediation: Transient. Retry with exponential backoff; escalate if persistent.
+  retryable: true
+  terminal: false
+- status: 502
+  error: upstream_unavailable
+  description: The upstream service is unavailable.
+  remediation: Transient. Retry with exponential backoff.
+  retryable: true
+  terminal: false
+status_codes:
+- 400
+- 401
+- 403
+- 404
+- 422
+- 429
+- 500
+- 502
+exceptions:
+- name: platform-sales passthrough
+  applies_to:
+  - createCart
+  - updateCart
+  - createPaymentRequest
+  shape: legacy single-key codes, not {error, detail}
+  examples:
+  - item_invalid_type
+  - invalid_start_time
+  - creative_source_not_public
+  - company_payments_disabled
+  - booking_already_sold
+  note: The cart and payment-request endpoints proxy an internal service whose validation errors are passed through
+    unchanged, so the error envelope is not uniform across the surface.
+notes:
+- Every one of the 28 operations declares 401, 403, 429, 500 and 502 responses in the OpenAPI, so the auth, scope,
+  rate-limit and upstream classes are universal.
+- 'The 422 `restricted` family is merchant-policy enforcement, not client error: the merchant configures edit/cancel
+  rules in Configuraciones > Sitio web. The docs instruct integrators to surface these as "the merchant does not
+  allow this" rather than retrying.'
