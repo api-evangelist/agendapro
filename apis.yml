@@ -21,11 +21,11 @@ tags:
 - Booking
 - Salon Software
 - Spa and Wellness
-- Point of Sale
+- Point-of-Sale
 - Clinic Management
 - CRM
 - Payments
-- Webhooks
+- Webhook
 - Vertical SaaS
 - Latin America
 - SMB Software
@@ -43,32 +43,16 @@ tags_raw:
 - latin-america
 - smb-software
 apis:
-- name: AgendaPro Connect v3 API
-  description: 'Public REST API gateway for AgendaPro. Authenticates external developers with a per-company Bearer
-    API key, enforces scopes and rate limits, and proxies to internal services. 28 operations across 11 resources:
-    available slots, bookings, clients, client custom attributes, custom attribute templates, locations, services,
-    categories, providers, sales, carts and payment requests. Paginated list responses, a flat {error, detail} error
-    envelope, and HMAC-SHA256 signed webhooks for booking, client and payment-request events. Requires an active
-    Pro plan.'
+- aid: agendapro:agendapro-available-slots-api
+  name: AgendaPro Available Slots API
+  description: Query available booking slots for a service at a location
   humanURL: https://developers.agendapro.com/reference/getting-started-v3
   baseURL: https://connect.agendapro.com
   tags:
-  - Appointment Scheduling
-  - Booking
-  - CRM
-  - Point of Sale
-  - Payments
-  - Webhooks
-  tags_raw:
-  - appointment-scheduling
-  - booking
-  - crm
-  - point-of-sale
-  - payments
-  - webhooks
+  - Available Slots
   properties:
   - type: OpenAPI
-    url: openapi/agendapro-connect-v3-openapi.yml
+    url: openapi/agendapro-available-slots-api-openapi.yml
   - type: Documentation
     url: https://developers.agendapro.com/docs/getting-started
   - type: APIReference
@@ -89,9 +73,276 @@ apis:
     url: rate-limits/agendapro-rate-limits.yml
   - type: Webhooks
     url: asyncapi/agendapro-webhooks.yml
-  - type: Overlay
-    url: overlays/agendapro-connect-v3-overlay.yaml
-  image: https://files.readme.io/6f50a41-small-Recurso_12x.png
+- aid: agendapro:agendapro-bookings-api
+  name: AgendaPro Bookings API
+  description: Booking management (list, show, create, update, cancel)
+  humanURL: https://developers.agendapro.com/reference/getting-started-v3
+  baseURL: https://connect.agendapro.com
+  tags:
+  - Bookings
+  properties:
+  - type: OpenAPI
+    url: openapi/agendapro-bookings-api-openapi.yml
+  - type: Documentation
+    url: https://developers.agendapro.com/docs/getting-started
+  - type: APIReference
+    url: https://developers.agendapro.com/reference/getting-started-v3
+  - type: GettingStarted
+    url: https://developers.agendapro.com/docs/getting-started
+  - type: Authentication
+    url: authentication/agendapro-authentication.yml
+  - type: OAuthScopes
+    url: scopes/agendapro-scopes.yml
+  - type: Conventions
+    url: conventions/agendapro-conventions.yml
+  - type: ErrorCatalog
+    url: errors/agendapro-problem-types.yml
+  - type: DataModel
+    url: data-model/agendapro-data-model.yml
+  - type: RateLimits
+    url: rate-limits/agendapro-rate-limits.yml
+  - type: Webhooks
+    url: asyncapi/agendapro-webhooks.yml
+- aid: agendapro:agendapro-carts-api
+  name: AgendaPro Carts API
+  description: Shopping carts for the online payment flow
+  humanURL: https://developers.agendapro.com/reference/getting-started-v3
+  baseURL: https://connect.agendapro.com
+  tags:
+  - Carts
+  properties:
+  - type: OpenAPI
+    url: openapi/agendapro-carts-api-openapi.yml
+  - type: Documentation
+    url: https://developers.agendapro.com/docs/getting-started
+  - type: APIReference
+    url: https://developers.agendapro.com/reference/getting-started-v3
+  - type: GettingStarted
+    url: https://developers.agendapro.com/docs/getting-started
+  - type: Authentication
+    url: authentication/agendapro-authentication.yml
+  - type: OAuthScopes
+    url: scopes/agendapro-scopes.yml
+  - type: Conventions
+    url: conventions/agendapro-conventions.yml
+  - type: ErrorCatalog
+    url: errors/agendapro-problem-types.yml
+  - type: DataModel
+    url: data-model/agendapro-data-model.yml
+  - type: RateLimits
+    url: rate-limits/agendapro-rate-limits.yml
+  - type: Webhooks
+    url: asyncapi/agendapro-webhooks.yml
+- aid: agendapro:agendapro-clients-api
+  name: AgendaPro Clients API
+  description: Client management (list, show, create, update) and custom attributes
+  humanURL: https://developers.agendapro.com/reference/getting-started-v3
+  baseURL: https://connect.agendapro.com
+  tags:
+  - Clients
+  properties:
+  - type: OpenAPI
+    url: openapi/agendapro-clients-api-openapi.yml
+  - type: Documentation
+    url: https://developers.agendapro.com/docs/getting-started
+  - type: APIReference
+    url: https://developers.agendapro.com/reference/getting-started-v3
+  - type: GettingStarted
+    url: https://developers.agendapro.com/docs/getting-started
+  - type: Authentication
+    url: authentication/agendapro-authentication.yml
+  - type: OAuthScopes
+    url: scopes/agendapro-scopes.yml
+  - type: Conventions
+    url: conventions/agendapro-conventions.yml
+  - type: ErrorCatalog
+    url: errors/agendapro-problem-types.yml
+  - type: DataModel
+    url: data-model/agendapro-data-model.yml
+  - type: RateLimits
+    url: rate-limits/agendapro-rate-limits.yml
+  - type: Webhooks
+    url: asyncapi/agendapro-webhooks.yml
+- aid: agendapro:agendapro-custom-attributes-api
+  name: AgendaPro Custom Attributes API
+  description: Custom attribute templates (company-level definitions)
+  humanURL: https://developers.agendapro.com/reference/getting-started-v3
+  baseURL: https://connect.agendapro.com
+  tags:
+  - Custom Attributes
+  properties:
+  - type: OpenAPI
+    url: openapi/agendapro-custom-attributes-api-openapi.yml
+  - type: Documentation
+    url: https://developers.agendapro.com/docs/getting-started
+  - type: APIReference
+    url: https://developers.agendapro.com/reference/getting-started-v3
+  - type: GettingStarted
+    url: https://developers.agendapro.com/docs/getting-started
+  - type: Authentication
+    url: authentication/agendapro-authentication.yml
+  - type: OAuthScopes
+    url: scopes/agendapro-scopes.yml
+  - type: Conventions
+    url: conventions/agendapro-conventions.yml
+  - type: ErrorCatalog
+    url: errors/agendapro-problem-types.yml
+  - type: DataModel
+    url: data-model/agendapro-data-model.yml
+  - type: RateLimits
+    url: rate-limits/agendapro-rate-limits.yml
+  - type: Webhooks
+    url: asyncapi/agendapro-webhooks.yml
+- aid: agendapro:agendapro-locations-api
+  name: AgendaPro Locations API
+  description: Location listing and details
+  humanURL: https://developers.agendapro.com/reference/getting-started-v3
+  baseURL: https://connect.agendapro.com
+  tags:
+  - Locations
+  properties:
+  - type: OpenAPI
+    url: openapi/agendapro-locations-api-openapi.yml
+  - type: Documentation
+    url: https://developers.agendapro.com/docs/getting-started
+  - type: APIReference
+    url: https://developers.agendapro.com/reference/getting-started-v3
+  - type: GettingStarted
+    url: https://developers.agendapro.com/docs/getting-started
+  - type: Authentication
+    url: authentication/agendapro-authentication.yml
+  - type: OAuthScopes
+    url: scopes/agendapro-scopes.yml
+  - type: Conventions
+    url: conventions/agendapro-conventions.yml
+  - type: ErrorCatalog
+    url: errors/agendapro-problem-types.yml
+  - type: DataModel
+    url: data-model/agendapro-data-model.yml
+  - type: RateLimits
+    url: rate-limits/agendapro-rate-limits.yml
+  - type: Webhooks
+    url: asyncapi/agendapro-webhooks.yml
+- aid: agendapro:agendapro-payment-requests-api
+  name: AgendaPro Payment Requests API
+  description: Online payment requests (checkout URL) on a cart
+  humanURL: https://developers.agendapro.com/reference/getting-started-v3
+  baseURL: https://connect.agendapro.com
+  tags:
+  - Payment Requests
+  properties:
+  - type: OpenAPI
+    url: openapi/agendapro-payment-requests-api-openapi.yml
+  - type: Documentation
+    url: https://developers.agendapro.com/docs/getting-started
+  - type: APIReference
+    url: https://developers.agendapro.com/reference/getting-started-v3
+  - type: GettingStarted
+    url: https://developers.agendapro.com/docs/getting-started
+  - type: Authentication
+    url: authentication/agendapro-authentication.yml
+  - type: OAuthScopes
+    url: scopes/agendapro-scopes.yml
+  - type: Conventions
+    url: conventions/agendapro-conventions.yml
+  - type: ErrorCatalog
+    url: errors/agendapro-problem-types.yml
+  - type: DataModel
+    url: data-model/agendapro-data-model.yml
+  - type: RateLimits
+    url: rate-limits/agendapro-rate-limits.yml
+  - type: Webhooks
+    url: asyncapi/agendapro-webhooks.yml
+- aid: agendapro:agendapro-providers-api
+  name: AgendaPro Providers API
+  description: Service provider listing and details
+  humanURL: https://developers.agendapro.com/reference/getting-started-v3
+  baseURL: https://connect.agendapro.com
+  tags:
+  - Providers
+  properties:
+  - type: OpenAPI
+    url: openapi/agendapro-providers-api-openapi.yml
+  - type: Documentation
+    url: https://developers.agendapro.com/docs/getting-started
+  - type: APIReference
+    url: https://developers.agendapro.com/reference/getting-started-v3
+  - type: GettingStarted
+    url: https://developers.agendapro.com/docs/getting-started
+  - type: Authentication
+    url: authentication/agendapro-authentication.yml
+  - type: OAuthScopes
+    url: scopes/agendapro-scopes.yml
+  - type: Conventions
+    url: conventions/agendapro-conventions.yml
+  - type: ErrorCatalog
+    url: errors/agendapro-problem-types.yml
+  - type: DataModel
+    url: data-model/agendapro-data-model.yml
+  - type: RateLimits
+    url: rate-limits/agendapro-rate-limits.yml
+  - type: Webhooks
+    url: asyncapi/agendapro-webhooks.yml
+- aid: agendapro:agendapro-sales-api
+  name: AgendaPro Sales API
+  description: Sales records (read-only)
+  humanURL: https://developers.agendapro.com/reference/getting-started-v3
+  baseURL: https://connect.agendapro.com
+  tags:
+  - Sales
+  properties:
+  - type: OpenAPI
+    url: openapi/agendapro-sales-api-openapi.yml
+  - type: Documentation
+    url: https://developers.agendapro.com/docs/getting-started
+  - type: APIReference
+    url: https://developers.agendapro.com/reference/getting-started-v3
+  - type: GettingStarted
+    url: https://developers.agendapro.com/docs/getting-started
+  - type: Authentication
+    url: authentication/agendapro-authentication.yml
+  - type: OAuthScopes
+    url: scopes/agendapro-scopes.yml
+  - type: Conventions
+    url: conventions/agendapro-conventions.yml
+  - type: ErrorCatalog
+    url: errors/agendapro-problem-types.yml
+  - type: DataModel
+    url: data-model/agendapro-data-model.yml
+  - type: RateLimits
+    url: rate-limits/agendapro-rate-limits.yml
+  - type: Webhooks
+    url: asyncapi/agendapro-webhooks.yml
+- aid: agendapro:agendapro-services-api
+  name: AgendaPro Services API
+  description: Service catalog listing and details
+  humanURL: https://developers.agendapro.com/reference/getting-started-v3
+  baseURL: https://connect.agendapro.com
+  tags:
+  - Services
+  properties:
+  - type: OpenAPI
+    url: openapi/agendapro-services-api-openapi.yml
+  - type: Documentation
+    url: https://developers.agendapro.com/docs/getting-started
+  - type: APIReference
+    url: https://developers.agendapro.com/reference/getting-started-v3
+  - type: GettingStarted
+    url: https://developers.agendapro.com/docs/getting-started
+  - type: Authentication
+    url: authentication/agendapro-authentication.yml
+  - type: OAuthScopes
+    url: scopes/agendapro-scopes.yml
+  - type: Conventions
+    url: conventions/agendapro-conventions.yml
+  - type: ErrorCatalog
+    url: errors/agendapro-problem-types.yml
+  - type: DataModel
+    url: data-model/agendapro-data-model.yml
+  - type: RateLimits
+    url: rate-limits/agendapro-rate-limits.yml
+  - type: Webhooks
+    url: asyncapi/agendapro-webhooks.yml
 common:
 - type: Website
   url: https://agendapro.com/
