@@ -16,6 +16,9 @@ x-source: harvest:secondary-market
 specificationVersion: '0.20'
 created: '2026-09-12'
 modified: '2026-09-12'
+x-docs-platform: readme
+x-docs-platform-confidence: high
+x-docs-platform-checked: 2026-09-17
 tags:
 - Appointment Scheduling
 - Booking
@@ -79,6 +82,8 @@ apis:
   humanURL: https://developers.agendapro.com/reference/getting-started-v3
   baseURL: https://connect.agendapro.com
   tags:
+  - Booking
+  tags_raw:
   - Bookings
   properties:
   - type: OpenAPI
@@ -109,6 +114,8 @@ apis:
   humanURL: https://developers.agendapro.com/reference/getting-started-v3
   baseURL: https://connect.agendapro.com
   tags:
+  - Cart
+  tags_raw:
   - Carts
   properties:
   - type: OpenAPI
@@ -199,6 +206,8 @@ apis:
   humanURL: https://developers.agendapro.com/reference/getting-started-v3
   baseURL: https://connect.agendapro.com
   tags:
+  - Location
+  tags_raw:
   - Locations
   properties:
   - type: OpenAPI
