@@ -1,0 +1,582 @@
+openapi: 3.2.0
+info:
+  title: Connect v3 Carts API
+  version: 3.0.0
+  description: Public API gateway for AgendaPro.
+servers:
+- url: https://connect.agendapro.com
+  description: Production
+security:
+- BearerAuth: []
+tags:
+- name: Carts
+  description: Shopping carts for the online payment flow
+paths:
+  /v3/carts:
+    post:
+      operationId: createCart
+      summary: Create Cart
+      description: 'Creates a shopping cart. The cart is the first step of the online payment
+
+        flow: add items, then create a payment request on the cart to obtain a
+
+        checkout URL.
+
+
+        ### Important Notes
+
+
+        - Requires `carts:write` scope.
+
+        - **Online payments must be enabled for the company** to complete the flow. Carts can be created regardless, but payment request creation fails when online payments are disabled.
+
+        - The cart always belongs to the authenticated company; any `company_id` sent in the body is ignored.
+
+        - To sell a service and book it in the same flow, send an item with `item_type: "service"` and a single instance `{ "instance_type": "booking", "reference_id": null, "data": { "start_time": "...", "provider_id": ... } }`. The booking is created automatically when the payment request is created, and released automatically if the payment request expires or is cancelled.
+
+        - `data.start_time` must be an ISO 8601 datetime in **UTC** (`Z` or `+00:00`, e.g. `2026-08-01T13:00:00Z`). Other offsets are accepted here but rejected when the booking is reserved at payment-request time (`invalid_start_time`).
+
+        - `data.creative_source` cannot be set: it is always `connect` for the public API (any value sent is overridden).
+
+        - Carts expire after 24 hours.
+
+        - Item validation errors (400/422) from platform-sales are passed through unchanged; see the platform-sales carts documentation for the full dictionary.
+
+        - Business errors proxied from platform-sales use legacy single-key codes (e.g. `cart_not_found`, `invalid_start_time`, `creative_source_not_public`) rather than the `{error, detail}` shape used by connect-level errors (auth, scope, rate limit).
+
+
+        ### Errors Dictionary
+
+
+        | **Status** | **Error** | **Detail** | **Description** |
+
+        | --- | --- | --- | --- |
+
+        | 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |
+
+        | 401 | unauthorized | api_config_inactive | API access is inactive for this company. |
+
+        | 403 | forbidden | scope_denied | API key lacks `carts:write` scope. |
+
+        | 400, 422 | *(upstream)* | | Item validation errors from platform-sales are passed through with legacy single-key codes (e.g. `item_invalid_type`, `invalid_start_time`, `creative_source_not_public`); see the platform-sales carts documentation for the full list. |
+
+        | 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |
+
+        | 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |
+
+        | 502 | upstream_unavailable | | The upstream service is unavailable. |'
+      tags:
+      - Carts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CartInput'
+            examples:
+              serviceWithBooking:
+                summary: Service item with on-demand booking
+                value:
+                  client_id: 223190
+                  location_id: 1
+                  items:
+                  - item_id: 10
+                    item_type: service
+                    unit_price: '20000'
+                    quantity: 1
+                    instances:
+                    - instance_type: booking
+                      reference_id: null
+                      data:
+                        start_time: '2026-08-01T10:00:00Z'
+                        provider_id: 5
+      responses:
+        '201':
+          description: Cart created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/UpstreamUnavailable'
+  /v3/carts/{id}:
+    get:
+      operationId: getCart
+      summary: Get Cart
+      description: 'Returns a single cart by ID. Only carts belonging to the authenticated
+
+        company are visible; other carts return 404.
+
+
+        ### Errors Dictionary
+
+
+        | **Status** | **Error** | **Detail** | **Description** |
+
+        | --- | --- | --- | --- |
+
+        | 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |
+
+        | 401 | unauthorized | api_config_inactive | API access is inactive for this company. |
+
+        | 403 | forbidden | scope_denied | API key lacks `carts:read` scope. |
+
+        | 404 | cart_not_found | | Cart not found for this company. |
+
+        | 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |
+
+        | 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |
+
+        | 502 | upstream_unavailable | | The upstream service is unavailable. |'
+      tags:
+      - Carts
+      parameters:
+      - $ref: '#/components/parameters/CartId'
+      responses:
+        '200':
+          description: Cart found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/UpstreamUnavailable'
+    patch:
+      operationId: updateCart
+      summary: Update Cart
+      description: 'Updates a cart''s items or client. Only carts belonging to the
+
+        authenticated company can be updated; other carts return 404.
+
+
+        ### Important Notes
+
+
+        - Requires `carts:write` scope.
+
+        - Sending `items` replaces the full items array.
+
+        - Any payment request in `pending` status on the cart is cancelled automatically before applying the update, and on-demand bookings reserved by it are released.
+
+        - The cart must not be expired and must not have paid or partially paid sales.
+
+        - Item validation errors (400/422) from platform-sales are passed through unchanged.
+
+
+        ### Errors Dictionary
+
+
+        | **Status** | **Error** | **Detail** | **Description** |
+
+        | --- | --- | --- | --- |
+
+        | 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |
+
+        | 401 | unauthorized | api_config_inactive | API access is inactive for this company. |
+
+        | 403 | forbidden | scope_denied | API key lacks `carts:write` scope. |
+
+        | 404 | cart_not_found | | Cart not found for this company. |
+
+        | 422 | cart_expired | | The cart has expired (older than 24 hours). |
+
+        | 422 | cart_paid | | The cart already has a paid sale. |
+
+        | 400, 422 | *(upstream)* | | Item validation errors from platform-sales are passed through with legacy single-key codes (e.g. `item_invalid_type`, `invalid_start_time`, `creative_source_not_public`); see the platform-sales carts documentation for the full list. |
+
+        | 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |
+
+        | 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |
+
+        | 502 | upstream_unavailable | | The upstream service is unavailable. |'
+      tags:
+      - Carts
+      parameters:
+      - $ref: '#/components/parameters/CartId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CartUpdateInput'
+      responses:
+        '200':
+          description: Cart updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/UpstreamUnavailable'
+components:
+  parameters:
+    CartId:
+      name: id
+      in: path
+      required: true
+      description: Cart unique identifier.
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+  responses:
+    UpstreamUnavailable:
+      description: Upstream service is unavailable.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            upstreamUnavailable:
+              summary: '[Error] 502 Bad Gateway - Upstream unavailable'
+              value:
+                error: upstream_unavailable
+                detail: The upstream service is unavailable
+    Unauthorized:
+      description: Missing or invalid Bearer API key, or inactive API configuration.
+      headers:
+        WWW-Authenticate:
+          schema:
+            type: string
+            example: Bearer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            invalidApiKey:
+              summary: '[Error] 401 Unauthorized - Invalid API key'
+              value:
+                error: unauthorized
+                detail: invalid_api_key
+            apiConfigInactive:
+              summary: '[Error] 401 Unauthorized - API access inactive'
+              value:
+                error: unauthorized
+                detail: api_config_inactive
+    RateLimited:
+      description: Rate limit exceeded. Check the `Retry-After` header.
+      headers:
+        Retry-After:
+          description: Seconds until the rate limit resets.
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            burstLimitExceeded:
+              summary: '[Error] 429 Too Many Requests - Burst limit'
+              value:
+                error: rate_limited
+                detail: burst_limit_exceeded
+            dailyQuotaExceeded:
+              summary: '[Error] 429 Too Many Requests - Daily quota'
+              value:
+                error: rate_limited
+                detail: daily_quota_exceeded
+    Forbidden:
+      description: API key lacks the required scope for this operation.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            scopeDenied:
+              summary: '[Error] 403 Forbidden - Scope denied'
+              value:
+                error: forbidden
+                detail: scope_denied
+    InternalServerError:
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            internalError:
+              summary: '[Error] 500 Internal Server Error - Internal error'
+              value:
+                error: internal_error
+                detail: unexpected
+    NotFound:
+      description: Resource not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            notFound:
+              summary: '[Error] 404 Not Found - Resource not found'
+              value:
+                error: not_found
+                detail: booking
+  schemas:
+    Cart:
+      type: object
+      description: Cart resource (filtered for public API).
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 100
+        uuid:
+          type: string
+          format: uuid
+        client_id:
+          type:
+          - integer
+          - 'null'
+        location_id:
+          type:
+          - integer
+          - 'null'
+        total:
+          type: string
+          description: Cart total as decimal string.
+          example: '20000.0'
+        subtotal:
+          type: string
+          example: '20000.0'
+        discount:
+          type: string
+          example: '0.0'
+        note:
+          type:
+          - string
+          - 'null'
+        online_payment:
+          type: boolean
+          description: Whether every item in the cart is payable online.
+        items:
+          type: array
+          items:
+            type: object
+            description: Cart item (filtered subset).
+            properties:
+              id:
+                type: string
+              item_id:
+                type: integer
+              item_type:
+                type: string
+              item_name:
+                type:
+                - string
+                - 'null'
+              quantity:
+                type: integer
+              unit_price:
+                type: string
+              total_price:
+                type: string
+              unit_discount:
+                type:
+                - string
+                - 'null'
+              unit_discount_type:
+                type:
+                - string
+                - 'null'
+              total_discount:
+                type:
+                - string
+                - 'null'
+              discount:
+                type:
+                - string
+                - 'null'
+              reference_id:
+                type:
+                - integer
+                - 'null'
+              instances:
+                type: array
+                items:
+                  type: object
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    ErrorDetailResponse:
+      type: object
+      description: 'Standard error response.
+
+        The `error` field contains the error type and the `detail` field
+
+        provides additional context.
+
+        '
+      properties:
+        error:
+          type: string
+          description: Error type identifier.
+          example: unauthorized
+        detail:
+          type:
+          - string
+          - 'null'
+          description: Additional context about the error.
+          example: invalid_api_key
+      required:
+      - error
+    CartItemInput:
+      type: object
+      description: Cart item payload. Validation rules per item_type live in platform-sales.
+      required:
+      - item_id
+      - item_type
+      - unit_price
+      - quantity
+      properties:
+        item_id:
+          type: integer
+          description: Catalog ID of the item (service, product, plan, etc.).
+        item_type:
+          type: string
+          enum:
+          - service
+          - class
+          - session
+          - addon
+          - plan
+          - bundle
+          - product
+          - treatment
+          - giftcard
+          - membership
+        item_name:
+          type:
+          - string
+          - 'null'
+        item_uuid:
+          type:
+          - string
+          - 'null'
+        unit_price:
+          type: string
+          description: Unit price as decimal string.
+        quantity:
+          type: integer
+        unit_discount:
+          type:
+          - string
+          - 'null'
+        unit_discount_type:
+          type:
+          - string
+          - 'null'
+        instances:
+          type: array
+          description: 'Per-unit instances. For service bookings, exactly one instance with
+
+            `instance_type: "booking"`. Use `reference_id` for an existing
+
+            booking, or `reference_id: null` plus `data.start_time` and
+
+            `data.provider_id` to create the booking on the fly when the
+
+            payment request is created. `data.creative_source` defaults to
+
+            `connect` when omitted.
+
+            '
+          items:
+            type: object
+            properties:
+              instance_type:
+                type: string
+                example: booking
+              reference_id:
+                type:
+                - integer
+                - 'null'
+              data:
+                type:
+                - object
+                - 'null'
+                properties:
+                  start_time:
+                    type: string
+                    format: date-time
+                  provider_id:
+                    type: integer
+                  creative_source:
+                    type: string
+                    description: Defaults to `connect` when omitted.
+    CartUpdateInput:
+      type: object
+      description: Cart update payload. `items` replaces the full items array.
+      properties:
+        client_id:
+          type:
+          - integer
+          - 'null'
+        note:
+          type:
+          - string
+          - 'null'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartItemInput'
+    CartInput:
+      type: object
+      description: Cart creation payload. The company is taken from the API key.
+      required:
+      - items
+      properties:
+        client_id:
+          type:
+          - integer
+          - 'null'
+          description: Client the cart (and resulting sale/booking) belongs to.
+        location_id:
+          type:
+          - integer
+          - 'null'
+        note:
+          type:
+          - string
+          - 'null'
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/CartItemInput'
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: 'API key issued per company. Pass as Authorization: Bearer <key>.'

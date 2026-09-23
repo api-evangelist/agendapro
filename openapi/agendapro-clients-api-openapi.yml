@@ -1,0 +1,1098 @@
+openapi: 3.2.0
+info:
+  title: Connect v3 Clients API
+  version: 3.0.0
+  description: Public API gateway for AgendaPro.
+servers:
+- url: https://connect.agendapro.com
+  description: Production
+security:
+- BearerAuth: []
+tags:
+- name: Clients
+  description: Client management (list, show, create, update) and custom attributes
+paths:
+  /v3/clients:
+    get:
+      operationId: listClients
+      summary: List Clients
+      description: 'This endpoint returns a paginated list of clients for the company.
+
+
+        ### Errors Dictionary
+
+
+        | **Status** | **Error** | **Detail** | **Description** |
+
+        | --- | --- | --- | --- |
+
+        | 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |
+
+        | 401 | unauthorized | api_config_inactive | API access is inactive for this company. |
+
+        | 403 | forbidden | scope_denied | API key lacks `clients:read` scope. |
+
+        | 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |
+
+        | 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |
+
+        | 502 | upstream_unavailable | | The upstream service is unavailable. |'
+      tags:
+      - Clients
+      parameters:
+      - name: page
+        in: query
+        description: Page number (defaults to 1).
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      - name: per_page
+        in: query
+        description: Records per page (defaults to 30, max 100).
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 30
+      responses:
+        '200':
+          description: Paginated list of clients.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientListResponse'
+              examples:
+                clientList:
+                  summary: '[Success] 200 OK - Client list'
+                  value:
+                    data:
+                    - id: 223190
+                      first_name: Maria
+                      last_name: Lopez
+                      email: maria.lopez@example.com
+                      phone: '+56912345678'
+                      second_phone: null
+                      identification_number: 12345678-9
+                      address: Av. Providencia 1234
+                      district: Providencia
+                      city: Santiago
+                      region: RM
+                      age: 30
+                      gender: 1
+                      birth_day: 15
+                      birth_month: 6
+                      birth_year: 1995
+                      record_number: C-0001
+                      photo: null
+                      nationality: null
+                      phone_country: CL
+                      active: true
+                      custom_attributes: []
+                      created_at: '2025-01-01T12:00:00-03:00'
+                      updated_at: '2025-06-15T09:30:00-03:00'
+                    pagination:
+                      current_page: 1
+                      per_page: 30
+                      next_page: null
+                      prev_page: null
+                      total_records: 1
+                      total_pages: 1
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/UpstreamUnavailable'
+    post:
+      operationId: createClient
+      summary: Create Client
+      description: 'This endpoint creates a new client for the company.
+
+
+        ### Important Notes
+
+
+        - At least one of `last_name`, `email`, or `phone` is required by business logic.
+
+        - Email is normalized to lowercase.
+
+        - Phone must follow E.164 format.
+
+
+        ### Errors Dictionary
+
+
+        | **Status** | **Error** | **Detail** | **Description** |
+
+        | --- | --- | --- | --- |
+
+        | 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |
+
+        | 401 | unauthorized | api_config_inactive | API access is inactive for this company. |
+
+        | 403 | forbidden | scope_denied | API key lacks `clients:write` scope. |
+
+        | 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |
+
+        | 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |
+
+        | 502 | upstream_unavailable | | The upstream service is unavailable. |'
+      tags:
+      - Clients
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateClientRequest'
+            examples:
+              createClient:
+                summary: '[Request] Create a client'
+                value:
+                  first_name: Maria
+                  last_name: Lopez
+                  email: maria.lopez@example.com
+                  phone: '+56912345678'
+      responses:
+        '201':
+          description: Client created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Client'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/UpstreamUnavailable'
+  /v3/clients/quick-search:
+    get:
+      operationId: quickSearchClients
+      summary: Quick Search Clients
+      description: 'This endpoint returns a small, ranked list of clients matching a free-text query.
+
+        It searches by name, email, phone, identification number, and record number, and is
+
+        intended for type-ahead / autocomplete use cases.
+
+
+        ### Errors Dictionary
+
+
+        | **Status** | **Error** | **Detail** | **Description** |
+
+        | --- | --- | --- | --- |
+
+        | 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |
+
+        | 401 | unauthorized | api_config_inactive | API access is inactive for this company. |
+
+        | 403 | forbidden | scope_denied | API key lacks `clients:read` scope. |
+
+        | 400 | bad_request | missing_q | Query string `q` is required. |
+
+        | 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |
+
+        | 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |
+
+        | 502 | upstream_unavailable | | The upstream service is unavailable. |'
+      tags:
+      - Clients
+      parameters:
+      - name: q
+        in: query
+        description: Free-text search query (max 50 characters).
+        required: true
+        schema:
+          type: string
+          maxLength: 50
+          example: maria
+      - name: limit
+        in: query
+        description: Maximum number of results (defaults to 10, max 25).
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 25
+          default: 10
+      responses:
+        '200':
+          description: Ranked list of matching clients.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientQuickSearchResponse'
+              examples:
+                clientQuickSearch:
+                  summary: '[Success] 200 OK - Quick search results'
+                  value:
+                    data:
+                    - id: 223190
+                      full_name: Maria Lopez
+                      email: maria.lopez@example.com
+                      phone: '+56912345678'
+                      identification_number: 12345678-9
+                      record_number: C-0001
+        '400':
+          description: Query string `q` is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetailResponse'
+              examples:
+                missingQuery:
+                  summary: '[Error] 400 - Missing q'
+                  value:
+                    error: missing_q
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/UpstreamUnavailable'
+  /v3/clients/{id}:
+    get:
+      operationId: getClient
+      summary: Get Client
+      description: 'This endpoint returns a single client by ID.
+
+
+        ### Errors Dictionary
+
+
+        | **Status** | **Error** | **Detail** | **Description** |
+
+        | --- | --- | --- | --- |
+
+        | 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |
+
+        | 401 | unauthorized | api_config_inactive | API access is inactive for this company. |
+
+        | 403 | forbidden | scope_denied | API key lacks `clients:read` scope. |
+
+        | 404 | not_found | client | Client not found. |
+
+        | 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |
+
+        | 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |
+
+        | 502 | upstream_unavailable | | The upstream service is unavailable. |'
+      tags:
+      - Clients
+      parameters:
+      - $ref: '#/components/parameters/ClientId'
+      responses:
+        '200':
+          description: Client found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Client'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/UpstreamUnavailable'
+    patch:
+      operationId: updateClient
+      summary: Update Client
+      description: 'This endpoint updates an existing client. Only provided fields are updated (partial update).
+
+
+        ### Errors Dictionary
+
+
+        | **Status** | **Error** | **Detail** | **Description** |
+
+        | --- | --- | --- | --- |
+
+        | 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |
+
+        | 401 | unauthorized | api_config_inactive | API access is inactive for this company. |
+
+        | 403 | forbidden | scope_denied | API key lacks `clients:write` scope. |
+
+        | 404 | not_found | client | Client not found. |
+
+        | 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |
+
+        | 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |
+
+        | 502 | upstream_unavailable | | The upstream service is unavailable. |'
+      tags:
+      - Clients
+      parameters:
+      - $ref: '#/components/parameters/ClientId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateClientRequest'
+            examples:
+              updateClient:
+                summary: '[Request] Update client email'
+                value:
+                  email: maria.new@example.com
+      responses:
+        '200':
+          description: Client updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Client'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/UpstreamUnavailable'
+  /v3/clients/{id}/deactivate:
+    patch:
+      operationId: deactivateClient
+      summary: Deactivate Client
+      description: 'This endpoint deactivates (soft deletes) a client.
+
+
+        ### Errors Dictionary
+
+
+        | **Status** | **Error** | **Detail** | **Description** |
+
+        | --- | --- | --- | --- |
+
+        | 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |
+
+        | 401 | unauthorized | api_config_inactive | API access is inactive for this company. |
+
+        | 403 | forbidden | scope_denied | API key lacks `clients:write` scope. |
+
+        | 404 | not_found | client | Client not found. |
+
+        | 422 | unprocessable_entity | client_already_deactivated | Client is already deactivated. |
+
+        | 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |
+
+        | 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |
+
+        | 502 | upstream_unavailable | | The upstream service is unavailable. |'
+      tags:
+      - Clients
+      parameters:
+      - $ref: '#/components/parameters/ClientId'
+      responses:
+        '204':
+          description: Client deactivated.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: Client is already deactivated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetailResponse'
+              examples:
+                alreadyDeactivated:
+                  summary: '[Error] 422 - Client already deactivated'
+                  value:
+                    error: client_already_deactivated
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/UpstreamUnavailable'
+  /v3/clients/{id}/custom_attributes:
+    get:
+      operationId: listClientCustomAttributes
+      summary: List Client Custom Attributes
+      description: 'Returns the custom attribute values for a specific client. These are the values that fill the templates returned by `GET /v3/custom_attributes`.
+
+
+        ### Errors Dictionary
+
+
+        | **Status** | **Error** | **Detail** | **Description** |
+
+        | --- | --- | --- | --- |
+
+        | 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |
+
+        | 401 | unauthorized | api_config_inactive | API access is inactive for this company. |
+
+        | 403 | forbidden | scope_denied | API key lacks `clients:read` scope. |
+
+        | 404 | not_found | client | Client not found. |
+
+        | 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |
+
+        | 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |
+
+        | 502 | upstream_unavailable | | The upstream service is unavailable. |'
+      tags:
+      - Clients
+      parameters:
+      - $ref: '#/components/parameters/ClientId'
+      responses:
+        '200':
+          description: Custom attributes for the client.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CustomAttribute'
+              examples:
+                customAttributes:
+                  summary: '[Success] 200 OK - Custom attributes'
+                  value:
+                  - id: 1
+                    name: Preferred stylist
+                    datatype: text
+                    value: John
+                  - id: 2
+                    name: VIP
+                    datatype: boolean
+                    value: 'true'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/UpstreamUnavailable'
+components:
+  schemas:
+    ClientListResponse:
+      type: object
+      description: Paginated client list response.
+      properties:
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Client'
+      required:
+      - pagination
+      - data
+    CreateClientRequest:
+      type: object
+      description: Request body for creating a client.
+      properties:
+        first_name:
+          type: string
+          maxLength: 255
+          description: Client first name.
+          example: Maria
+        last_name:
+          type: string
+          maxLength: 255
+          description: Client last name.
+          example: Lopez
+        email:
+          type: string
+          format: email
+          maxLength: 255
+          description: Client email.
+          example: maria.lopez@example.com
+        identification_number:
+          type: string
+          maxLength: 255
+          description: National identification number.
+        phone:
+          type: string
+          maxLength: 255
+          description: Phone number in E.164 format.
+          example: '+56912345678'
+        address:
+          type: string
+          maxLength: 255
+          description: Street address.
+        district:
+          type: string
+          maxLength: 255
+          description: District or neighborhood.
+        city:
+          type: string
+          maxLength: 255
+          description: City.
+        region:
+          type: string
+          maxLength: 255
+          description: Region or state.
+        age:
+          type: integer
+          minimum: 1
+          description: Client age.
+        gender:
+          type: integer
+          enum:
+          - 0
+          - 1
+          - 2
+          description: 'Gender: 0 = other, 1 = female, 2 = male.'
+        birth_day:
+          type: integer
+          minimum: 1
+          description: Day of birth.
+        birth_month:
+          type: integer
+          minimum: 1
+          description: Month of birth.
+        birth_year:
+          type: integer
+          minimum: 1
+          description: Year of birth.
+        custom_attributes:
+          type: array
+          description: Custom attribute values to set.
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                description: Custom attribute definition ID.
+              value:
+                description: Attribute value (type depends on the attribute datatype).
+            required:
+            - id
+            - value
+      required:
+      - first_name
+    ClientQuickSearchResponse:
+      type: object
+      description: Quick search client list response.
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClientQuickSearchResult'
+      required:
+      - data
+    ErrorDetailResponse:
+      type: object
+      description: 'Standard error response.
+
+        The `error` field contains the error type and the `detail` field
+
+        provides additional context.
+
+        '
+      properties:
+        error:
+          type: string
+          description: Error type identifier.
+          example: unauthorized
+        detail:
+          type:
+          - string
+          - 'null'
+          description: Additional context about the error.
+          example: invalid_api_key
+      required:
+      - error
+    Client:
+      type: object
+      description: Client resource (filtered for public API).
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Unique client ID.
+          example: 223190
+        first_name:
+          type: string
+          maxLength: 255
+          description: Client first name.
+          example: Maria
+        last_name:
+          type:
+          - string
+          - 'null'
+          maxLength: 255
+          description: Client last name.
+          example: Lopez
+        email:
+          type: string
+          description: Client email (normalized to lowercase).
+          example: maria.lopez@example.com
+        phone:
+          type:
+          - string
+          - 'null'
+          maxLength: 255
+          description: Phone number in E.164 format.
+          example: '+56912345678'
+        second_phone:
+          type:
+          - string
+          - 'null'
+          description: Secondary phone number.
+        identification_number:
+          type:
+          - string
+          - 'null'
+          maxLength: 255
+          description: National identification number.
+          example: 12345678-9
+        address:
+          type:
+          - string
+          - 'null'
+          maxLength: 255
+          description: Street address.
+          example: Av. Providencia 1234
+        district:
+          type:
+          - string
+          - 'null'
+          maxLength: 255
+          description: District or neighborhood.
+          example: Providencia
+        city:
+          type:
+          - string
+          - 'null'
+          maxLength: 255
+          description: City.
+          example: Santiago
+        region:
+          type: string
+          maxLength: 255
+          description: Region or state.
+          example: RM
+        age:
+          type:
+          - integer
+          - 'null'
+          description: Client age.
+          example: 30
+        gender:
+          type: integer
+          enum:
+          - 0
+          - 1
+          - 2
+          description: 'Gender: 0 = other, 1 = female, 2 = male.'
+          example: 1
+        birth_day:
+          type:
+          - integer
+          - 'null'
+          description: Day of birth.
+          example: 15
+        birth_month:
+          type:
+          - integer
+          - 'null'
+          description: Month of birth.
+          example: 6
+        birth_year:
+          type:
+          - integer
+          - 'null'
+          description: Year of birth.
+          example: 1995
+        record_number:
+          type:
+          - string
+          - 'null'
+          description: Client record number (unique per company).
+          example: C-0001
+        photo:
+          type:
+          - string
+          - 'null'
+          description: Client photo URL.
+        nationality:
+          type:
+          - string
+          - 'null'
+          description: Client nationality.
+        phone_country:
+          type:
+          - string
+          - 'null'
+          description: Phone country code (ISO 3166-1 alpha-2).
+          example: CL
+        active:
+          type: boolean
+          description: Whether the client is active.
+          example: true
+        created_at:
+          type: string
+          format: date-time
+          description: Creation timestamp.
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp.
+      required:
+      - id
+      - first_name
+      - last_name
+      - email
+      - phone
+      - second_phone
+      - identification_number
+      - address
+      - district
+      - city
+      - region
+      - age
+      - gender
+      - birth_day
+      - birth_month
+      - birth_year
+      - record_number
+      - photo
+      - nationality
+      - phone_country
+      - active
+      - created_at
+      - updated_at
+    CustomAttribute:
+      type: object
+      description: Client custom attribute value.
+      properties:
+        id:
+          type: integer
+          description: Custom attribute definition ID.
+          example: 1
+        name:
+          type: string
+          description: Attribute name.
+          example: Preferred stylist
+        datatype:
+          type: string
+          enum:
+          - boolean
+          - categoric
+          - date
+          - datetime
+          - file
+          - float
+          - integer
+          - text
+          - textarea
+          description: Attribute data type.
+          example: text
+        value:
+          type:
+          - string
+          - 'null'
+          description: Attribute value (as string).
+          example: John
+      required:
+      - id
+      - name
+      - datatype
+    UpdateClientRequest:
+      type: object
+      description: Request body for updating a client (partial update).
+      properties:
+        first_name:
+          type: string
+          maxLength: 255
+          description: Client first name.
+        last_name:
+          type: string
+          maxLength: 255
+          description: Client last name.
+        email:
+          type: string
+          format: email
+          maxLength: 255
+          description: Client email.
+        identification_number:
+          type: string
+          maxLength: 255
+          description: National identification number.
+        phone:
+          type: string
+          maxLength: 255
+          description: Phone number in E.164 format.
+        address:
+          type: string
+          maxLength: 255
+          description: Street address.
+        district:
+          type: string
+          maxLength: 255
+          description: District or neighborhood.
+        city:
+          type: string
+          maxLength: 255
+          description: City.
+        region:
+          type: string
+          maxLength: 255
+          description: Region or state.
+        age:
+          type: integer
+          minimum: 1
+          description: Client age.
+        gender:
+          type: integer
+          enum:
+          - 0
+          - 1
+          - 2
+          description: 'Gender: 0 = other, 1 = female, 2 = male.'
+        birth_day:
+          type: integer
+          minimum: 1
+          description: Day of birth.
+        birth_month:
+          type: integer
+          minimum: 1
+          description: Month of birth.
+        birth_year:
+          type: integer
+          minimum: 1
+          description: Year of birth.
+        custom_attributes:
+          type: array
+          description: Custom attribute values to update.
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                description: Custom attribute definition ID.
+              value:
+                description: Attribute value.
+            required:
+            - id
+            - value
+    ClientQuickSearchResult:
+      type: object
+      description: A single client returned by quick search.
+      properties:
+        id:
+          type: integer
+          description: Client ID.
+          example: 223190
+        full_name:
+          type: string
+          description: Client full name (first and last name combined).
+          example: Maria Lopez
+        email:
+          type:
+          - string
+          - 'null'
+          format: email
+          description: Client email.
+          example: maria.lopez@example.com
+        phone:
+          type:
+          - string
+          - 'null'
+          description: Client phone in E.164 format.
+          example: '+56912345678'
+        identification_number:
+          type:
+          - string
+          - 'null'
+          description: National identification number.
+          example: 12345678-9
+        record_number:
+          type:
+          - string
+          - 'null'
+          description: Internal record number.
+          example: C-0001
+    Pagination:
+      type: object
+      description: Pagination metadata.
+      properties:
+        current_page:
+          type: integer
+          minimum: 1
+          description: Current page.
+          example: 1
+        per_page:
+          type: integer
+          minimum: 1
+          maximum: 100
+          description: Records per page.
+          example: 30
+        next_page:
+          type:
+          - integer
+          - 'null'
+          minimum: 1
+          description: Next page number, or null on the last page.
+          example: 2
+        prev_page:
+          type:
+          - integer
+          - 'null'
+          minimum: 1
+          description: Previous page number, or null on the first page.
+          example: null
+        total_records:
+          type: integer
+          minimum: 0
+          description: Total records.
+          example: 95
+        total_pages:
+          type: integer
+          minimum: 0
+          description: Total pages.
+          example: 4
+      required:
+      - current_page
+      - per_page
+      - next_page
+      - prev_page
+      - total_records
+      - total_pages
+  responses:
+    UpstreamUnavailable:
+      description: Upstream service is unavailable.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            upstreamUnavailable:
+              summary: '[Error] 502 Bad Gateway - Upstream unavailable'
+              value:
+                error: upstream_unavailable
+                detail: The upstream service is unavailable
+    Unauthorized:
+      description: Missing or invalid Bearer API key, or inactive API configuration.
+      headers:
+        WWW-Authenticate:
+          schema:
+            type: string
+            example: Bearer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            invalidApiKey:
+              summary: '[Error] 401 Unauthorized - Invalid API key'
+              value:
+                error: unauthorized
+                detail: invalid_api_key
+            apiConfigInactive:
+              summary: '[Error] 401 Unauthorized - API access inactive'
+              value:
+                error: unauthorized
+                detail: api_config_inactive
+    RateLimited:
+      description: Rate limit exceeded. Check the `Retry-After` header.
+      headers:
+        Retry-After:
+          description: Seconds until the rate limit resets.
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            burstLimitExceeded:
+              summary: '[Error] 429 Too Many Requests - Burst limit'
+              value:
+                error: rate_limited
+                detail: burst_limit_exceeded
+            dailyQuotaExceeded:
+              summary: '[Error] 429 Too Many Requests - Daily quota'
+              value:
+                error: rate_limited
+                detail: daily_quota_exceeded
+    Forbidden:
+      description: API key lacks the required scope for this operation.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            scopeDenied:
+              summary: '[Error] 403 Forbidden - Scope denied'
+              value:
+                error: forbidden
+                detail: scope_denied
+    InternalServerError:
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            internalError:
+              summary: '[Error] 500 Internal Server Error - Internal error'
+              value:
+                error: internal_error
+                detail: unexpected
+    NotFound:
+      description: Resource not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            notFound:
+              summary: '[Error] 404 Not Found - Resource not found'
+              value:
+                error: not_found
+                detail: booking
+  parameters:
+    ClientId:
+      name: id
+      in: path
+      required: true
+      description: Client unique identifier.
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: 'API key issued per company. Pass as Authorization: Bearer <key>.'

@@ -1,0 +1,551 @@
+openapi: 3.2.0
+info:
+  title: Connect v3 Locations API
+  version: 3.0.0
+  description: Public API gateway for AgendaPro.
+servers:
+- url: https://connect.agendapro.com
+  description: Production
+security:
+- BearerAuth: []
+tags:
+- name: Locations
+  description: Location listing and details
+paths:
+  /v3/locations:
+    get:
+      operationId: listLocations
+      summary: List Locations
+      description: 'This endpoint returns a paginated list of locations for the company.
+
+
+        ### Errors Dictionary
+
+
+        | **Status** | **Error** | **Detail** | **Description** |
+
+        | --- | --- | --- | --- |
+
+        | 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |
+
+        | 401 | unauthorized | api_config_inactive | API access is inactive for this company. |
+
+        | 403 | forbidden | scope_denied | API key lacks `locations:read` scope. |
+
+        | 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |
+
+        | 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |
+
+        | 502 | upstream_unavailable | | The upstream service is unavailable. |'
+      tags:
+      - Locations
+      parameters:
+      - name: active
+        in: query
+        description: Filter by active status.
+        required: false
+        schema:
+          type: boolean
+      - name: page
+        in: query
+        description: Page number (defaults to 1).
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      - name: per_page
+        in: query
+        description: Records per page (defaults to 30, max 100).
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 30
+      responses:
+        '200':
+          description: Paginated list of locations.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationListResponse'
+              examples:
+                locationList:
+                  summary: '[Success] 200 OK - Location list'
+                  value:
+                    data:
+                    - id: 1
+                      uuid: loc-uuid-1
+                      name: Sucursal Providencia
+                      active: true
+                      address:
+                        route: Av. Providencia
+                        street_number: '1234'
+                        locality: Providencia
+                        administrative_area_level_1: Región Metropolitana
+                        country: Chile
+                      phone: '+56912345678'
+                      email: providencia@example.com
+                      latitude: -33.4255
+                      longitude: -70.6101
+                      timezone: America/Santiago
+                      image:
+                        id: 1
+                        url: https://cdn.example.com/locations/1.jpg
+                      image_map: null
+                      company:
+                        id: 100
+                        name: Spa Relax
+                      country:
+                        id: 1
+                        name: Chile
+                        timezone_name: Santiago
+                        timezone_offset: -03:00
+                      times:
+                      - id: 1
+                        day_id: 1
+                        open: 09:00
+                        close: '18:00'
+                      created_at: '2025-01-01T12:00:00-03:00'
+                      updated_at: '2025-06-15T09:30:00-03:00'
+                    pagination:
+                      current_page: 1
+                      per_page: 30
+                      next_page: null
+                      prev_page: null
+                      total_records: 1
+                      total_pages: 1
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/UpstreamUnavailable'
+  /v3/locations/{id}:
+    get:
+      operationId: getLocation
+      summary: Get Location
+      description: 'This endpoint returns a single location by ID.
+
+
+        ### Errors Dictionary
+
+
+        | **Status** | **Error** | **Detail** | **Description** |
+
+        | --- | --- | --- | --- |
+
+        | 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |
+
+        | 401 | unauthorized | api_config_inactive | API access is inactive for this company. |
+
+        | 403 | forbidden | scope_denied | API key lacks `locations:read` scope. |
+
+        | 404 | not_found | location | Location not found. |
+
+        | 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |
+
+        | 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |
+
+        | 502 | upstream_unavailable | | The upstream service is unavailable. |'
+      tags:
+      - Locations
+      parameters:
+      - $ref: '#/components/parameters/LocationId'
+      responses:
+        '200':
+          description: Location found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Location'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/UpstreamUnavailable'
+components:
+  responses:
+    UpstreamUnavailable:
+      description: Upstream service is unavailable.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            upstreamUnavailable:
+              summary: '[Error] 502 Bad Gateway - Upstream unavailable'
+              value:
+                error: upstream_unavailable
+                detail: The upstream service is unavailable
+    Unauthorized:
+      description: Missing or invalid Bearer API key, or inactive API configuration.
+      headers:
+        WWW-Authenticate:
+          schema:
+            type: string
+            example: Bearer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            invalidApiKey:
+              summary: '[Error] 401 Unauthorized - Invalid API key'
+              value:
+                error: unauthorized
+                detail: invalid_api_key
+            apiConfigInactive:
+              summary: '[Error] 401 Unauthorized - API access inactive'
+              value:
+                error: unauthorized
+                detail: api_config_inactive
+    RateLimited:
+      description: Rate limit exceeded. Check the `Retry-After` header.
+      headers:
+        Retry-After:
+          description: Seconds until the rate limit resets.
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            burstLimitExceeded:
+              summary: '[Error] 429 Too Many Requests - Burst limit'
+              value:
+                error: rate_limited
+                detail: burst_limit_exceeded
+            dailyQuotaExceeded:
+              summary: '[Error] 429 Too Many Requests - Daily quota'
+              value:
+                error: rate_limited
+                detail: daily_quota_exceeded
+    Forbidden:
+      description: API key lacks the required scope for this operation.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            scopeDenied:
+              summary: '[Error] 403 Forbidden - Scope denied'
+              value:
+                error: forbidden
+                detail: scope_denied
+    InternalServerError:
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            internalError:
+              summary: '[Error] 500 Internal Server Error - Internal error'
+              value:
+                error: internal_error
+                detail: unexpected
+    NotFound:
+      description: Resource not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            notFound:
+              summary: '[Error] 404 Not Found - Resource not found'
+              value:
+                error: not_found
+                detail: booking
+  schemas:
+    LocationListResponse:
+      type: object
+      description: Paginated location list response.
+      properties:
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Location'
+      required:
+      - pagination
+      - data
+    LocationImage:
+      type:
+      - object
+      - 'null'
+      description: Location image.
+      properties:
+        id:
+          type: integer
+          example: 1
+        url:
+          type: string
+          example: https://cdn.example.com/locations/1.jpg
+      required:
+      - id
+      - url
+    ErrorDetailResponse:
+      type: object
+      description: 'Standard error response.
+
+        The `error` field contains the error type and the `detail` field
+
+        provides additional context.
+
+        '
+      properties:
+        error:
+          type: string
+          description: Error type identifier.
+          example: unauthorized
+        detail:
+          type:
+          - string
+          - 'null'
+          description: Additional context about the error.
+          example: invalid_api_key
+      required:
+      - error
+    LocationTime:
+      type: object
+      description: Location operating hours for a day.
+      properties:
+        id:
+          type: integer
+          example: 1
+        day_id:
+          type: integer
+          description: Day of the week (0=Sunday, 1=Monday, ..., 6=Saturday).
+          example: 1
+        open:
+          type: string
+          description: Opening time (HH:MM).
+          example: 09:00
+        close:
+          type: string
+          description: Closing time (HH:MM).
+          example: '18:00'
+      required:
+      - id
+      - day_id
+      - open
+      - close
+    Pagination:
+      type: object
+      description: Pagination metadata.
+      properties:
+        current_page:
+          type: integer
+          minimum: 1
+          description: Current page.
+          example: 1
+        per_page:
+          type: integer
+          minimum: 1
+          maximum: 100
+          description: Records per page.
+          example: 30
+        next_page:
+          type:
+          - integer
+          - 'null'
+          minimum: 1
+          description: Next page number, or null on the last page.
+          example: 2
+        prev_page:
+          type:
+          - integer
+          - 'null'
+          minimum: 1
+          description: Previous page number, or null on the first page.
+          example: null
+        total_records:
+          type: integer
+          minimum: 0
+          description: Total records.
+          example: 95
+        total_pages:
+          type: integer
+          minimum: 0
+          description: Total pages.
+          example: 4
+      required:
+      - current_page
+      - per_page
+      - next_page
+      - prev_page
+      - total_records
+      - total_pages
+    Location:
+      type: object
+      description: Location resource (filtered for public API).
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Unique location ID.
+          example: 1
+        uuid:
+          type: string
+          description: Location UUID.
+          example: loc-uuid-1
+        name:
+          type: string
+          description: Location name.
+          example: Sucursal Providencia
+        active:
+          type: boolean
+          description: Whether the location is active.
+          example: true
+        address:
+          type: object
+          additionalProperties:
+            type: string
+          description: Address as a flat hash keyed by Google Maps component type.
+          example:
+            route: Av. Providencia
+            street_number: '1234'
+            locality: Providencia
+            administrative_area_level_1: Región Metropolitana
+            country: Chile
+        phone:
+          type:
+          - string
+          - 'null'
+          description: Location phone number.
+          example: '+56912345678'
+        email:
+          type: string
+          format: email
+          description: Location email.
+          example: providencia@example.com
+        latitude:
+          type:
+          - number
+          - 'null'
+          format: double
+          description: Geographic latitude.
+          example: -33.4255
+        longitude:
+          type:
+          - number
+          - 'null'
+          format: double
+          description: Geographic longitude.
+          example: -70.6101
+        timezone:
+          type: string
+          description: IANA timezone identifier.
+          example: America/Santiago
+        image:
+          $ref: '#/components/schemas/LocationImage'
+        image_map:
+          type:
+          - string
+          - 'null'
+          description: Image map URL.
+        company_id:
+          type: integer
+          description: Company ID.
+          example: 100
+        company:
+          type: object
+          description: Parent company.
+          properties:
+            id:
+              type: integer
+              example: 100
+            name:
+              type: string
+              example: Spa Relax
+          required:
+          - id
+          - name
+        country:
+          type: object
+          description: Country information.
+          properties:
+            id:
+              type: integer
+              example: 1
+            name:
+              type: string
+              example: Chile
+            timezone_name:
+              type: string
+              example: Santiago
+            timezone_offset:
+              type: string
+              example: -03:00
+          required:
+          - id
+          - name
+          - timezone_name
+          - timezone_offset
+        country_id:
+          type: integer
+          description: Country ID.
+          example: 1
+        times:
+          type: array
+          description: Operating hours.
+          items:
+            $ref: '#/components/schemas/LocationTime'
+        created_at:
+          type: string
+          format: date-time
+          description: Creation timestamp.
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp.
+      required:
+      - id
+      - uuid
+      - name
+      - active
+      - address
+      - phone
+      - email
+      - latitude
+      - longitude
+      - timezone
+      - image
+      - image_map
+      - company_id
+      - company
+      - country
+      - country_id
+      - times
+      - created_at
+      - updated_at
+  parameters:
+    LocationId:
+      name: id
+      in: path
+      required: true
+      description: Location unique identifier.
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: 'API key issued per company. Pass as Authorization: Bearer <key>.'

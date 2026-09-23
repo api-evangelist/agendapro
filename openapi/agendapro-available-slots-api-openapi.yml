@@ -1,0 +1,298 @@
+openapi: 3.2.0
+info:
+  title: Connect v3 Available Slots API
+  version: 3.0.0
+  description: Public API gateway for AgendaPro.
+servers:
+- url: https://connect.agendapro.com
+  description: Production
+security:
+- BearerAuth: []
+tags:
+- name: Available Slots
+  description: Query available booking slots for a service at a location
+paths:
+  /v3/available_slots:
+    get:
+      operationId: listAvailableSlots
+      summary: List Available Slots
+      description: 'Returns available booking slots for a service at a location on a given date.
+
+
+        Results are grouped into a `slots` array and a `metadata` object.
+
+        The `slots` array contains individual time windows; `metadata` summarises the query.
+
+
+        ### Important Notes
+
+
+        - Results are scoped to the company associated with the API key.
+
+        - `location_id` and `start_date` are required.
+
+        - Requires `bookings:read` scope.
+
+
+        ### Errors Dictionary
+
+
+        | **Status** | **Error** | **Detail** | **Description** |
+
+        | --- | --- | --- | --- |
+
+        | 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |
+
+        | 401 | unauthorized | api_config_inactive | API access is inactive for this company. |
+
+        | 403 | forbidden | scope_denied | API key lacks `bookings:read` scope. |
+
+        | 404 | location_not_found | | Location not found or does not belong to the company. |
+
+        | 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |
+
+        | 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |
+
+        | 502 | upstream_unavailable | | The upstream service is unavailable. |'
+      tags:
+      - Available Slots
+      parameters:
+      - name: location_id
+        in: query
+        description: Location ID to query slots for.
+        required: true
+        schema:
+          type: integer
+      - name: start_date
+        in: query
+        description: Date to query slots for (YYYY-MM-DD).
+        required: true
+        schema:
+          type: string
+          format: date
+          example: '2026-04-08'
+      - name: service_id
+        in: query
+        description: Filter by service ID.
+        required: false
+        schema:
+          type: integer
+      - name: provider_id
+        in: query
+        description: Filter by provider ID.
+        required: false
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Available slots returned.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      slots:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/AvailableSlot'
+                      metadata:
+                        $ref: '#/components/schemas/AvailableSlotsMetadata'
+              example:
+                data:
+                  slots:
+                  - start_time: 09:00
+                    end_time: 09:30
+                    provider_id: 12964
+                    provider_name: Dobby
+                  - start_time: 09:30
+                    end_time: '10:00'
+                    provider_id: 12964
+                    provider_name: Dobby
+                  metadata:
+                    location_id: 3257
+                    date: '2026-04-08'
+                    service_id: 3698
+                    duration: 30
+                    slots_count: 22
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/UpstreamUnavailable'
+components:
+  responses:
+    UpstreamUnavailable:
+      description: Upstream service is unavailable.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            upstreamUnavailable:
+              summary: '[Error] 502 Bad Gateway - Upstream unavailable'
+              value:
+                error: upstream_unavailable
+                detail: The upstream service is unavailable
+    Unauthorized:
+      description: Missing or invalid Bearer API key, or inactive API configuration.
+      headers:
+        WWW-Authenticate:
+          schema:
+            type: string
+            example: Bearer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            invalidApiKey:
+              summary: '[Error] 401 Unauthorized - Invalid API key'
+              value:
+                error: unauthorized
+                detail: invalid_api_key
+            apiConfigInactive:
+              summary: '[Error] 401 Unauthorized - API access inactive'
+              value:
+                error: unauthorized
+                detail: api_config_inactive
+    RateLimited:
+      description: Rate limit exceeded. Check the `Retry-After` header.
+      headers:
+        Retry-After:
+          description: Seconds until the rate limit resets.
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            burstLimitExceeded:
+              summary: '[Error] 429 Too Many Requests - Burst limit'
+              value:
+                error: rate_limited
+                detail: burst_limit_exceeded
+            dailyQuotaExceeded:
+              summary: '[Error] 429 Too Many Requests - Daily quota'
+              value:
+                error: rate_limited
+                detail: daily_quota_exceeded
+    Forbidden:
+      description: API key lacks the required scope for this operation.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            scopeDenied:
+              summary: '[Error] 403 Forbidden - Scope denied'
+              value:
+                error: forbidden
+                detail: scope_denied
+    InternalServerError:
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            internalError:
+              summary: '[Error] 500 Internal Server Error - Internal error'
+              value:
+                error: internal_error
+                detail: unexpected
+    NotFound:
+      description: Resource not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            notFound:
+              summary: '[Error] 404 Not Found - Resource not found'
+              value:
+                error: not_found
+                detail: booking
+  schemas:
+    ErrorDetailResponse:
+      type: object
+      description: 'Standard error response.
+
+        The `error` field contains the error type and the `detail` field
+
+        provides additional context.
+
+        '
+      properties:
+        error:
+          type: string
+          description: Error type identifier.
+          example: unauthorized
+        detail:
+          type:
+          - string
+          - 'null'
+          description: Additional context about the error.
+          example: invalid_api_key
+      required:
+      - error
+    AvailableSlot:
+      type: object
+      description: A single available booking slot.
+      properties:
+        start_time:
+          type: string
+          description: Slot start time (HH:MM).
+          example: 09:00
+        end_time:
+          type: string
+          description: Slot end time (HH:MM).
+          example: 09:30
+        provider_id:
+          type: integer
+          description: Provider ID for this slot.
+          example: 12964
+        provider_name:
+          type: string
+          description: Provider display name.
+          example: Dobby
+    AvailableSlotsMetadata:
+      type: object
+      description: Metadata summarising the available slots query.
+      properties:
+        location_id:
+          type: integer
+          description: Location ID queried.
+          example: 3257
+        date:
+          type: string
+          format: date
+          description: Date queried (YYYY-MM-DD).
+          example: '2026-04-08'
+        service_id:
+          type: integer
+          description: Service ID queried (if provided).
+          example: 3698
+        duration:
+          type: integer
+          description: Service duration in minutes.
+          example: 30
+        slots_count:
+          type: integer
+          description: Total number of slots returned.
+          example: 22
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: 'API key issued per company. Pass as Authorization: Bearer <key>.'

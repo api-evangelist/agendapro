@@ -1,0 +1,534 @@
+openapi: 3.2.0
+info:
+  title: Connect v3 Sales API
+  version: 3.0.0
+  description: Public API gateway for AgendaPro.
+servers:
+- url: https://connect.agendapro.com
+  description: Production
+security:
+- BearerAuth: []
+tags:
+- name: Sales
+  description: Sales records (read-only)
+paths:
+  /v3/sales:
+    get:
+      operationId: listSales
+      summary: List Sales
+      description: 'This endpoint returns a paginated list of sales for the company.
+
+
+        ### Important Notes
+
+
+        - Requires `sales:read` scope.
+
+        - Sales are read-only via the public API.
+
+
+        ### Errors Dictionary
+
+
+        | **Status** | **Error** | **Detail** | **Description** |
+
+        | --- | --- | --- | --- |
+
+        | 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |
+
+        | 401 | unauthorized | api_config_inactive | API access is inactive for this company. |
+
+        | 403 | forbidden | scope_denied | API key lacks `sales:read` scope. |
+
+        | 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |
+
+        | 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |
+
+        | 502 | upstream_unavailable | | The upstream service is unavailable. |'
+      tags:
+      - Sales
+      parameters:
+      - name: paid_at_start
+        in: query
+        description: 'Filter by paid date range start (inclusive). Format: `YYYY-MM-DD`.'
+        required: false
+        schema:
+          type: string
+          format: date
+      - name: paid_at_end
+        in: query
+        description: 'Filter by paid date range end (inclusive). Format: `YYYY-MM-DD`.'
+        required: false
+        schema:
+          type: string
+          format: date
+      - name: location_id
+        in: query
+        description: Filter by location ID.
+        required: false
+        schema:
+          type: integer
+      - name: client_id
+        in: query
+        description: Filter by client ID.
+        required: false
+        schema:
+          type: integer
+      - name: page
+        in: query
+        description: Page number.
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+      - name: per_page
+        in: query
+        description: Records per page.
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+      responses:
+        '200':
+          description: List of sales.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SaleListResponse'
+              examples:
+                saleList:
+                  summary: '[Success] 200 OK - Sale list'
+                  value:
+                    pagination:
+                      current_page: 1
+                      per_page: 30
+                      next_page: null
+                      prev_page: null
+                      total_records: 2
+                      total_pages: 1
+                    data:
+                    - id: 500
+                      cart_id: 8842
+                      client_id: 223190
+                      pending_amount: '0.0'
+                      paid_amount: '50.0'
+                      status: paid
+                      paid_at: '2025-03-15T10:30:00Z'
+                      location:
+                        id: 1
+                        name: Main Branch
+                      transactions:
+                      - id: 300
+                        amount: '50.0'
+                        created_at: '2025-03-15T10:30:00Z'
+                        paid_at: '2025-03-15T10:30:00Z'
+                        payment_method:
+                          id: 10
+                          type: CompanyPaymentMethod
+                          name: Online Payment
+                      created_at: '2025-03-15T10:00:00Z'
+                      updated_at: '2025-03-15T10:30:00Z'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/UpstreamUnavailable'
+  /v3/sales/{id}:
+    get:
+      operationId: getSale
+      summary: Get Sale
+      description: 'This endpoint returns a single sale by ID.
+
+
+        ### Errors Dictionary
+
+
+        | **Status** | **Error** | **Detail** | **Description** |
+
+        | --- | --- | --- | --- |
+
+        | 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |
+
+        | 401 | unauthorized | api_config_inactive | API access is inactive for this company. |
+
+        | 403 | forbidden | scope_denied | API key lacks `sales:read` scope. |
+
+        | 404 | not_found | sale | Sale not found. |
+
+        | 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |
+
+        | 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |
+
+        | 502 | upstream_unavailable | | The upstream service is unavailable. |'
+      tags:
+      - Sales
+      parameters:
+      - $ref: '#/components/parameters/SaleId'
+      responses:
+        '200':
+          description: Sale found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sale'
+              examples:
+                saleFound:
+                  summary: '[Success] 200 OK - Sale found'
+                  value:
+                    id: 500
+                    cart_id: 8842
+                    pending_amount: '0.0'
+                    paid_amount: '50.0'
+                    status: paid
+                    paid_at: '2025-03-15T10:30:00Z'
+                    location:
+                      id: 1
+                      name: Main Branch
+                    transactions:
+                    - id: 300
+                      amount: '50.0'
+                      created_at: '2025-03-15T10:30:00Z'
+                      paid_at: '2025-03-15T10:30:00Z'
+                      payment_method:
+                        id: 10
+                        type: CompanyPaymentMethod
+                        name: Online Payment
+                    created_at: '2025-03-15T10:00:00Z'
+                    updated_at: '2025-03-15T10:30:00Z'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/UpstreamUnavailable'
+components:
+  responses:
+    UpstreamUnavailable:
+      description: Upstream service is unavailable.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            upstreamUnavailable:
+              summary: '[Error] 502 Bad Gateway - Upstream unavailable'
+              value:
+                error: upstream_unavailable
+                detail: The upstream service is unavailable
+    Unauthorized:
+      description: Missing or invalid Bearer API key, or inactive API configuration.
+      headers:
+        WWW-Authenticate:
+          schema:
+            type: string
+            example: Bearer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            invalidApiKey:
+              summary: '[Error] 401 Unauthorized - Invalid API key'
+              value:
+                error: unauthorized
+                detail: invalid_api_key
+            apiConfigInactive:
+              summary: '[Error] 401 Unauthorized - API access inactive'
+              value:
+                error: unauthorized
+                detail: api_config_inactive
+    RateLimited:
+      description: Rate limit exceeded. Check the `Retry-After` header.
+      headers:
+        Retry-After:
+          description: Seconds until the rate limit resets.
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            burstLimitExceeded:
+              summary: '[Error] 429 Too Many Requests - Burst limit'
+              value:
+                error: rate_limited
+                detail: burst_limit_exceeded
+            dailyQuotaExceeded:
+              summary: '[Error] 429 Too Many Requests - Daily quota'
+              value:
+                error: rate_limited
+                detail: daily_quota_exceeded
+    Forbidden:
+      description: API key lacks the required scope for this operation.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            scopeDenied:
+              summary: '[Error] 403 Forbidden - Scope denied'
+              value:
+                error: forbidden
+                detail: scope_denied
+    InternalServerError:
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            internalError:
+              summary: '[Error] 500 Internal Server Error - Internal error'
+              value:
+                error: internal_error
+                detail: unexpected
+    NotFound:
+      description: Resource not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            notFound:
+              summary: '[Error] 404 Not Found - Resource not found'
+              value:
+                error: not_found
+                detail: booking
+  parameters:
+    SaleId:
+      name: id
+      in: path
+      required: true
+      description: Sale unique identifier.
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+  schemas:
+    ErrorDetailResponse:
+      type: object
+      description: 'Standard error response.
+
+        The `error` field contains the error type and the `detail` field
+
+        provides additional context.
+
+        '
+      properties:
+        error:
+          type: string
+          description: Error type identifier.
+          example: unauthorized
+        detail:
+          type:
+          - string
+          - 'null'
+          description: Additional context about the error.
+          example: invalid_api_key
+      required:
+      - error
+    SaleTransaction:
+      type: object
+      description: Payment transaction within a sale.
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Unique transaction ID.
+          example: 300
+        amount:
+          type: string
+          description: Transaction amount as decimal string.
+          example: '50.0'
+        created_at:
+          type: string
+          format: date-time
+          description: Creation timestamp.
+        paid_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+          description: Payment timestamp.
+        payment_method:
+          type: object
+          description: Payment method used.
+          properties:
+            id:
+              type: integer
+              description: Payment method ID.
+              example: 10
+            type:
+              type: string
+              description: Payment method type.
+              example: CompanyPaymentMethod
+            name:
+              type: string
+              description: Payment method name.
+              example: Online Payment
+      required:
+      - id
+      - amount
+      - created_at
+    SaleListResponse:
+      type: object
+      description: Paginated sale list response.
+      properties:
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Sale'
+      required:
+      - pagination
+      - data
+    Pagination:
+      type: object
+      description: Pagination metadata.
+      properties:
+        current_page:
+          type: integer
+          minimum: 1
+          description: Current page.
+          example: 1
+        per_page:
+          type: integer
+          minimum: 1
+          maximum: 100
+          description: Records per page.
+          example: 30
+        next_page:
+          type:
+          - integer
+          - 'null'
+          minimum: 1
+          description: Next page number, or null on the last page.
+          example: 2
+        prev_page:
+          type:
+          - integer
+          - 'null'
+          minimum: 1
+          description: Previous page number, or null on the first page.
+          example: null
+        total_records:
+          type: integer
+          minimum: 0
+          description: Total records.
+          example: 95
+        total_pages:
+          type: integer
+          minimum: 0
+          description: Total pages.
+          example: 4
+      required:
+      - current_page
+      - per_page
+      - next_page
+      - prev_page
+      - total_records
+      - total_pages
+    Sale:
+      type: object
+      description: Sale resource (filtered for public API).
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Unique sale ID.
+          example: 500
+        cart_id:
+          type: integer
+          format: int64
+          description: ID of the cart this sale was created from. Use it to correlate a sale with its cart.
+          example: 8842
+        client_id:
+          type:
+          - integer
+          - 'null'
+          description: Client ID associated to the sale (sourced from the cart). Present in list responses; nullable when the cart has no client.
+          example: 223190
+        pending_amount:
+          type: string
+          description: Pending amount as decimal string.
+          example: '0.0'
+        paid_amount:
+          type: string
+          description: Paid amount as decimal string.
+          example: '50.0'
+        status:
+          type: string
+          enum:
+          - partially_paid
+          - paid
+          - canceled
+          - refunded
+          description: Sale status.
+          example: paid
+        paid_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+          description: Payment timestamp.
+        location_id:
+          type: integer
+          description: Location ID.
+          example: 1
+        location:
+          type: object
+          description: Location where the sale was made.
+          properties:
+            id:
+              type: integer
+              example: 1
+            name:
+              type: string
+              example: Main Branch
+          required:
+          - id
+          - name
+        transactions:
+          type: array
+          description: Transactions associated with this sale.
+          items:
+            $ref: '#/components/schemas/SaleTransaction'
+        created_at:
+          type: string
+          format: date-time
+          description: Creation timestamp.
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp.
+      required:
+      - id
+      - cart_id
+      - pending_amount
+      - paid_amount
+      - status
+      - paid_at
+      - location_id
+      - location
+      - transactions
+      - created_at
+      - updated_at
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: 'API key issued per company. Pass as Authorization: Bearer <key>.'

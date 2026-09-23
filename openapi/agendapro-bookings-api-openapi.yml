@@ -1,0 +1,1054 @@
+openapi: 3.2.0
+info:
+  title: Connect v3 Bookings API
+  version: 3.0.0
+  description: Public API gateway for AgendaPro.
+servers:
+- url: https://connect.agendapro.com
+  description: Production
+security:
+- BearerAuth: []
+tags:
+- name: Bookings
+  description: Booking management (list, show, create, update, cancel)
+paths:
+  /v3/bookings:
+    get:
+      operationId: listBookings
+      summary: List Bookings
+      description: 'This endpoint returns a paginated list of bookings for the company.
+
+
+        ### Important Notes
+
+
+        - Results are scoped to the company associated with the API key.
+
+        - At least one entity filter is required: `client_id`, `location_id`, `service_id`, or `service_provider_id`. The `start_date`/`end_date` parameters narrow results further but do not satisfy this requirement on their own.
+
+        - Requires `bookings:read` scope.
+
+        - `sale` may be the sale of a membership plan, which covers several bookings. Do not aggregate amounts by `sale.id`.
+
+
+        ### Errors Dictionary
+
+
+        | **Status** | **Error** | **Detail** | **Description** |
+
+        | --- | --- | --- | --- |
+
+        | 400 | required | params | No entity filter provided. Supply at least one of `client_id`, `location_id`, `service_id`, or `service_provider_id`. |
+
+        | 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |
+
+        | 401 | unauthorized | api_config_inactive | API access is inactive for this company. |
+
+        | 403 | forbidden | scope_denied | API key lacks `bookings:read` scope. |
+
+        | 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |
+
+        | 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |
+
+        | 502 | upstream_unavailable | | The upstream service is unavailable. |'
+      tags:
+      - Bookings
+      parameters:
+      - name: client_id
+        in: query
+        description: Filter by client ID.
+        required: false
+        schema:
+          type: integer
+      - name: location_id
+        in: query
+        description: Filter by location ID.
+        required: false
+        schema:
+          type: integer
+      - name: service_id
+        in: query
+        description: Filter by service ID.
+        required: false
+        schema:
+          type: integer
+      - name: service_provider_id
+        in: query
+        description: Filter by service provider ID.
+        required: false
+        schema:
+          type: integer
+      - name: scheduled
+        in: query
+        description: Filter by scheduled status.
+        required: false
+        schema:
+          type: boolean
+      - name: status_id
+        in: query
+        description: Filter by status ID.
+        required: false
+        schema:
+          type: integer
+      - name: start_date
+        in: query
+        description: Filter bookings from this date (YYYY-MM-DD).
+        required: false
+        schema:
+          type: string
+          format: date
+      - name: end_date
+        in: query
+        description: Filter bookings until this date (YYYY-MM-DD).
+        required: false
+        schema:
+          type: string
+          format: date
+      - name: page
+        in: query
+        description: Page number (defaults to 1).
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      - name: per_page
+        in: query
+        description: Records per page (defaults to 30, max 100).
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 30
+      responses:
+        '200':
+          description: Paginated list of bookings.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingListResponse'
+              examples:
+                bookingList:
+                  summary: '[Success] 200 OK - Booking list'
+                  value:
+                    data:
+                    - id: 12345
+                      start_time: '2026-03-10T10:00:00-03:00'
+                      end_time: '2026-03-10T10:30:00-03:00'
+                      status_id: 1
+                      status:
+                        id: 1
+                        name: Confirmed
+                        internal_name: confirmed
+                        description: null
+                      service_id: 10
+                      service:
+                        id: 10
+                        name: Haircut
+                      service_provider_id: 5
+                      service_provider:
+                        id: 5
+                        public_name: John Stylist
+                      client_id: 42
+                      location_id: 1
+                      location:
+                        id: 1
+                        name: Sucursal Providencia
+                      price: '15000.0'
+                      list_price: '15000.0'
+                      discount: null
+                      notes: null
+                      scheduled: true
+                      time_resource_id: null
+                      company_id: 100
+                      sale:
+                        id: 8842
+                        status: paid
+                        cart_id: 9310
+                      created_at: '2026-03-09T14:00:00-03:00'
+                      updated_at: '2026-03-09T14:00:00-03:00'
+                    pagination:
+                      current_page: 1
+                      per_page: 30
+                      next_page: null
+                      prev_page: null
+                      total_records: 1
+                      total_pages: 1
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/UpstreamUnavailable'
+    post:
+      operationId: createBooking
+      summary: Create Booking
+      description: 'This endpoint creates a new booking.
+
+
+        ### Important Notes
+
+
+        - Requires `bookings:write` scope.
+
+        - Notifications (email, SMS, WhatsApp) are disabled for bookings created via the public API.
+
+        - The `creative_source` is automatically set to `connect`.
+
+
+        ### Errors Dictionary
+
+
+        | **Status** | **Error** | **Detail** | **Description** |
+
+        | --- | --- | --- | --- |
+
+        | 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |
+
+        | 401 | unauthorized | api_config_inactive | API access is inactive for this company. |
+
+        | 403 | forbidden | scope_denied | API key lacks `bookings:write` scope. |
+
+        | 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |
+
+        | 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |
+
+        | 502 | upstream_unavailable | | The upstream service is unavailable. |'
+      tags:
+      - Bookings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBookingRequest'
+            examples:
+              createBooking:
+                summary: '[Request] Create a booking'
+                value:
+                  start_time: '2026-03-10T10:00:00-03:00'
+                  end_time: '2026-03-10T10:30:00-03:00'
+                  service_id: 10
+                  provider_id: 5
+                  client_id: 42
+                  location_id: 1
+                  status_id: 1
+      responses:
+        '201':
+          description: Booking created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+              examples:
+                bookingCreated:
+                  summary: '[Success] 201 Created - Booking created'
+                  value:
+                    id: 12345
+                    start_time: '2026-03-10T10:00:00-03:00'
+                    end_time: '2026-03-10T10:30:00-03:00'
+                    status_id: 1
+                    status:
+                      id: 1
+                      name: Confirmed
+                      internal_name: confirmed
+                      description: null
+                    service_id: 10
+                    service:
+                      id: 10
+                      name: Haircut
+                    service_provider_id: 5
+                    service_provider:
+                      id: 5
+                      public_name: John Stylist
+                    client_id: 42
+                    location_id: 1
+                    location:
+                      id: 1
+                      name: Sucursal Providencia
+                    price: '15000.0'
+                    list_price: '15000.0'
+                    discount: null
+                    notes: null
+                    scheduled: true
+                    time_resource_id: null
+                    company_id: 100
+                    sale: null
+                    created_at: '2026-03-09T14:00:00-03:00'
+                    updated_at: '2026-03-09T14:00:00-03:00'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/UpstreamUnavailable'
+  /v3/bookings/{id}:
+    get:
+      operationId: getBooking
+      summary: Get Booking
+      description: 'This endpoint returns a single booking by ID.
+
+
+        ### Errors Dictionary
+
+
+        | **Status** | **Error** | **Detail** | **Description** |
+
+        | --- | --- | --- | --- |
+
+        | 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |
+
+        | 401 | unauthorized | api_config_inactive | API access is inactive for this company. |
+
+        | 403 | forbidden | scope_denied | API key lacks `bookings:read` scope. |
+
+        | 404 | not_found | booking | Booking not found. |
+
+        | 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |
+
+        | 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |
+
+        | 502 | upstream_unavailable | | The upstream service is unavailable. |'
+      tags:
+      - Bookings
+      parameters:
+      - $ref: '#/components/parameters/BookingId'
+      responses:
+        '200':
+          description: Booking found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+              examples:
+                bookingFound:
+                  summary: '[Success] 200 OK - Booking found'
+                  value:
+                    id: 12345
+                    start_time: '2026-03-10T10:00:00-03:00'
+                    end_time: '2026-03-10T10:30:00-03:00'
+                    status_id: 1
+                    status:
+                      id: 1
+                      name: Confirmed
+                      internal_name: confirmed
+                      description: null
+                    service_id: 10
+                    service:
+                      id: 10
+                      name: Haircut
+                    service_provider_id: 5
+                    service_provider:
+                      id: 5
+                      public_name: John Stylist
+                    client_id: 42
+                    location_id: 1
+                    location:
+                      id: 1
+                      name: Sucursal Providencia
+                    price: '15000.0'
+                    list_price: '15000.0'
+                    discount: null
+                    notes: null
+                    scheduled: true
+                    time_resource_id: null
+                    company_id: 100
+                    sale:
+                      id: 8842
+                      status: paid
+                      cart_id: 9310
+                    created_at: '2026-03-09T14:00:00-03:00'
+                    updated_at: '2026-03-09T14:00:00-03:00'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/UpstreamUnavailable'
+    patch:
+      operationId: updateBooking
+      summary: Update Booking
+      description: 'This endpoint updates an existing booking. Only provided fields are updated (partial update).
+
+
+        ### Customer policy enforcement
+
+
+        Updates are validated against the merchant''s customer policy before being applied. If the merchant has disabled edits, the booking is too close to its start time, or it has reached its maximum number of changes, the request is rejected with `422 restricted` and the `detail` field identifies which rule tripped:
+
+
+        | **Detail** | **Meaning** |
+
+        | --- | --- |
+
+        | `can_edit` | Merchant disabled edits via the customer flow. |
+
+        | `before_edit_booking` | Booking is within the merchant''s pre-start lock window (no edits allowed this close to `start_time`). |
+
+        | `max_changes` | Booking already reached the merchant''s maximum number of changes. |
+
+
+        These values are configured by the merchant in **Configuraciones > Sitio web > Edición y cancelación de reservas en línea**.
+
+
+        Clients integrating against this API should surface these conditions to their end users as "the merchant does not allow this change" rather than retrying the request.
+
+
+        ### Errors Dictionary
+
+
+        | **Status** | **Error** | **Detail** | **Description** |
+
+        | --- | --- | --- | --- |
+
+        | 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |
+
+        | 401 | unauthorized | api_config_inactive | API access is inactive for this company. |
+
+        | 403 | forbidden | scope_denied | API key lacks `bookings:write` scope. |
+
+        | 404 | not_found | booking | Booking not found. |
+
+        | 422 | restricted | can_edit | Merchant has disabled edits via the customer flow. |
+
+        | 422 | restricted | before_edit_booking | Booking is within the merchant''s pre-start lock window. |
+
+        | 422 | restricted | max_changes | Booking has reached the merchant''s maximum number of changes. |
+
+        | 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |
+
+        | 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |
+
+        | 502 | upstream_unavailable | | The upstream service is unavailable. |'
+      tags:
+      - Bookings
+      parameters:
+      - $ref: '#/components/parameters/BookingId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBookingRequest'
+            examples:
+              rescheduleBooking:
+                summary: '[Request] Reschedule a booking'
+                value:
+                  start_time: '2026-03-11T14:00:00-03:00'
+                  end_time: '2026-03-11T14:30:00-03:00'
+      responses:
+        '200':
+          description: Booking updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: Update rejected by the merchant's customer policy.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetailResponse'
+              examples:
+                canEdit:
+                  summary: '[Error] 422 - Merchant disabled edits'
+                  value:
+                    error: restricted
+                    detail: can_edit
+                beforeEditBooking:
+                  summary: '[Error] 422 - Inside pre-start lock window'
+                  value:
+                    error: restricted
+                    detail: before_edit_booking
+                maxChanges:
+                  summary: '[Error] 422 - Maximum changes reached'
+                  value:
+                    error: restricted
+                    detail: max_changes
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/UpstreamUnavailable'
+  /v3/bookings/{id}/cancel:
+    patch:
+      operationId: cancelBooking
+      summary: Cancel Booking
+      description: 'This endpoint cancels a booking.
+
+
+        ### Customer policy enforcement
+
+
+        Cancellations are validated against the merchant''s customer policy before being applied. If the merchant has disabled cancellations, the booking is too close to its start time, or it has reached its maximum number of changes, the request is rejected with `422 restricted` and the `detail` field identifies which rule tripped:
+
+
+        | **Detail** | **Meaning** |
+
+        | --- | --- |
+
+        | `can_cancel` | Merchant disabled cancellations via the customer flow. |
+
+        | `before_edit_booking` | Booking is within the merchant''s pre-start lock window (no cancellations allowed this close to `start_time`). |
+
+        | `max_changes` | Booking already reached the merchant''s maximum number of changes. |
+
+
+        These values are configured by the merchant in **Configuraciones > Sitio web > Edición y cancelación de reservas en línea**.
+
+
+        Clients integrating against this API should surface these conditions to their end users as "the merchant does not allow this cancellation" rather than retrying the request.
+
+
+        ### Errors Dictionary
+
+
+        | **Status** | **Error** | **Detail** | **Description** |
+
+        | --- | --- | --- | --- |
+
+        | 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |
+
+        | 401 | unauthorized | api_config_inactive | API access is inactive for this company. |
+
+        | 403 | forbidden | scope_denied | API key lacks `bookings:write` scope. |
+
+        | 404 | not_found | booking | Booking not found. |
+
+        | 422 | restricted | can_cancel | Merchant has disabled cancellations via the customer flow. |
+
+        | 422 | restricted | before_edit_booking | Booking is within the merchant''s pre-start lock window. |
+
+        | 422 | restricted | max_changes | Booking has reached the merchant''s maximum number of changes. |
+
+        | 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |
+
+        | 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |
+
+        | 502 | upstream_unavailable | | The upstream service is unavailable. |'
+      tags:
+      - Bookings
+      parameters:
+      - $ref: '#/components/parameters/BookingId'
+      responses:
+        '204':
+          description: Booking cancelled.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: Cancellation rejected by the merchant's customer policy.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetailResponse'
+              examples:
+                canCancel:
+                  summary: '[Error] 422 - Merchant disabled cancellations'
+                  value:
+                    error: restricted
+                    detail: can_cancel
+                beforeEditBooking:
+                  summary: '[Error] 422 - Inside pre-start lock window'
+                  value:
+                    error: restricted
+                    detail: before_edit_booking
+                maxChanges:
+                  summary: '[Error] 422 - Maximum changes reached'
+                  value:
+                    error: restricted
+                    detail: max_changes
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/UpstreamUnavailable'
+components:
+  schemas:
+    BookingServiceProvider:
+      type: object
+      description: Embedded service provider summary.
+      properties:
+        id:
+          type: integer
+          example: 5
+        public_name:
+          type: string
+          example: John Stylist
+      required:
+      - id
+      - public_name
+    BookingListResponse:
+      type: object
+      description: Paginated booking list response.
+      properties:
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Booking'
+      required:
+      - pagination
+      - data
+    Booking:
+      type: object
+      description: Booking resource (filtered for public API).
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Unique booking ID.
+          example: 12345
+        start_time:
+          type: string
+          format: date-time
+          description: Booking start time.
+        end_time:
+          type: string
+          format: date-time
+          description: Booking end time.
+        status_id:
+          type: integer
+          description: Status ID.
+          example: 1
+        status:
+          $ref: '#/components/schemas/BookingStatus'
+        service_id:
+          type: integer
+          description: Service ID.
+          example: 10
+        service:
+          $ref: '#/components/schemas/BookingService'
+        service_provider_id:
+          type: integer
+          description: Service provider ID.
+          example: 5
+        service_provider:
+          $ref: '#/components/schemas/BookingServiceProvider'
+        client_id:
+          type: integer
+          description: Client ID.
+          example: 42
+        location_id:
+          type: integer
+          description: Location ID.
+          example: 1
+        price:
+          type: string
+          description: Booking price.
+          example: '15000.0'
+        list_price:
+          type: string
+          description: Original list price.
+          example: '15000.0'
+        discount:
+          type:
+          - string
+          - 'null'
+          description: Discount percentage.
+          example: '15.5'
+        notes:
+          type:
+          - string
+          - 'null'
+          description: Booking notes.
+        scheduled:
+          type: boolean
+          description: Whether the booking is scheduled.
+          example: true
+        time_resource_id:
+          type:
+          - integer
+          - 'null'
+          description: Time resource ID.
+        company_id:
+          type: integer
+          description: Company ID.
+          example: 100
+        sale:
+          $ref: '#/components/schemas/BookingSale'
+        created_at:
+          type: string
+          format: date-time
+          description: Creation timestamp.
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp.
+      required:
+      - id
+      - start_time
+      - end_time
+      - status_id
+      - status
+      - service_id
+      - service
+      - service_provider_id
+      - service_provider
+      - client_id
+      - location_id
+      - price
+      - list_price
+      - discount
+      - notes
+      - scheduled
+      - time_resource_id
+      - company_id
+      - sale
+      - created_at
+      - updated_at
+    BookingStatus:
+      type: object
+      description: Booking status.
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Confirmed
+        description:
+          type:
+          - string
+          - 'null'
+      required:
+      - id
+      - name
+    BookingService:
+      type: object
+      description: Embedded service summary.
+      properties:
+        id:
+          type: integer
+          example: 10
+        name:
+          type: string
+          example: Haircut
+      required:
+      - id
+      - name
+    UpdateBookingRequest:
+      type: object
+      description: Request body for updating a booking (partial update).
+      properties:
+        start_time:
+          type: string
+          format: date-time
+          description: Booking start time.
+        end_time:
+          type: string
+          format: date-time
+          description: Booking end time.
+        service_id:
+          type: integer
+          description: Service ID.
+        provider_id:
+          type: integer
+          description: Service provider ID.
+        client_id:
+          type: integer
+          description: Client ID.
+        location_id:
+          type: integer
+          description: Location ID.
+        status_id:
+          type: integer
+          description: Booking status ID. Cannot set to cancelled (use cancel endpoint).
+        price:
+          type: string
+          description: Booking price.
+        notes:
+          type:
+          - string
+          - 'null'
+          description: Booking notes.
+        time_resource_id:
+          type:
+          - integer
+          - 'null'
+          description: Time resource ID.
+    ErrorDetailResponse:
+      type: object
+      description: 'Standard error response.
+
+        The `error` field contains the error type and the `detail` field
+
+        provides additional context.
+
+        '
+      properties:
+        error:
+          type: string
+          description: Error type identifier.
+          example: unauthorized
+        detail:
+          type:
+          - string
+          - 'null'
+          description: Additional context about the error.
+          example: invalid_api_key
+      required:
+      - error
+    CreateBookingRequest:
+      type: object
+      description: Request body for creating a booking.
+      properties:
+        start_time:
+          type: string
+          format: date-time
+          description: Booking start time.
+        end_time:
+          type: string
+          format: date-time
+          description: Booking end time. Calculated from start_time + service duration if not provided.
+        service_id:
+          type: integer
+          description: Service ID.
+          example: 10
+        provider_id:
+          type: integer
+          description: Service provider ID.
+          example: 5
+        client_id:
+          type: integer
+          description: Client ID.
+          example: 42
+        location_id:
+          type: integer
+          description: Location ID.
+          example: 1
+        status_id:
+          type: integer
+          description: Booking status ID. Must be a non-cancelled status.
+          example: 1
+        price:
+          type: string
+          description: Booking price. Defaults to service price if not provided.
+          example: '15000.0'
+        notes:
+          type:
+          - string
+          - 'null'
+          description: Booking notes.
+        time_resource_id:
+          type:
+          - integer
+          - 'null'
+          description: Time resource ID. Required if the service requires a time resource.
+      required:
+      - start_time
+      - service_id
+      - provider_id
+      - client_id
+      - location_id
+      - status_id
+    Pagination:
+      type: object
+      description: Pagination metadata.
+      properties:
+        current_page:
+          type: integer
+          minimum: 1
+          description: Current page.
+          example: 1
+        per_page:
+          type: integer
+          minimum: 1
+          maximum: 100
+          description: Records per page.
+          example: 30
+        next_page:
+          type:
+          - integer
+          - 'null'
+          minimum: 1
+          description: Next page number, or null on the last page.
+          example: 2
+        prev_page:
+          type:
+          - integer
+          - 'null'
+          minimum: 1
+          description: Previous page number, or null on the first page.
+          example: null
+        total_records:
+          type: integer
+          minimum: 0
+          description: Total records.
+          example: 95
+        total_pages:
+          type: integer
+          minimum: 0
+          description: Total pages.
+          example: 4
+      required:
+      - current_page
+      - per_page
+      - next_page
+      - prev_page
+      - total_records
+      - total_pages
+    BookingSale:
+      type:
+      - object
+      - 'null'
+      description: Sale covering this booking. For bookings covered by a membership plan, this is the plan's sale, which may cover several bookings.
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Sale ID.
+          example: 8842
+        status:
+          type: string
+          enum:
+          - partially_paid
+          - paid
+          - canceled
+          - refunded
+          description: Sale status.
+          example: paid
+        cart_id:
+          type: integer
+          format: int64
+          description: Cart the sale was created from.
+          example: 9310
+      required:
+      - id
+      - status
+      - cart_id
+  responses:
+    UpstreamUnavailable:
+      description: Upstream service is unavailable.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            upstreamUnavailable:
+              summary: '[Error] 502 Bad Gateway - Upstream unavailable'
+              value:
+                error: upstream_unavailable
+                detail: The upstream service is unavailable
+    Unauthorized:
+      description: Missing or invalid Bearer API key, or inactive API configuration.
+      headers:
+        WWW-Authenticate:
+          schema:
+            type: string
+            example: Bearer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            invalidApiKey:
+              summary: '[Error] 401 Unauthorized - Invalid API key'
+              value:
+                error: unauthorized
+                detail: invalid_api_key
+            apiConfigInactive:
+              summary: '[Error] 401 Unauthorized - API access inactive'
+              value:
+                error: unauthorized
+                detail: api_config_inactive
+    RateLimited:
+      description: Rate limit exceeded. Check the `Retry-After` header.
+      headers:
+        Retry-After:
+          description: Seconds until the rate limit resets.
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            burstLimitExceeded:
+              summary: '[Error] 429 Too Many Requests - Burst limit'
+              value:
+                error: rate_limited
+                detail: burst_limit_exceeded
+            dailyQuotaExceeded:
+              summary: '[Error] 429 Too Many Requests - Daily quota'
+              value:
+                error: rate_limited
+                detail: daily_quota_exceeded
+    Forbidden:
+      description: API key lacks the required scope for this operation.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            scopeDenied:
+              summary: '[Error] 403 Forbidden - Scope denied'
+              value:
+                error: forbidden
+                detail: scope_denied
+    InternalServerError:
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            internalError:
+              summary: '[Error] 500 Internal Server Error - Internal error'
+              value:
+                error: internal_error
+                detail: unexpected
+    NotFound:
+      description: Resource not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            notFound:
+              summary: '[Error] 404 Not Found - Resource not found'
+              value:
+                error: not_found
+                detail: booking
+  parameters:
+    BookingId:
+      name: id
+      in: path
+      required: true
+      description: Booking unique identifier.
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: 'API key issued per company. Pass as Authorization: Bearer <key>.'

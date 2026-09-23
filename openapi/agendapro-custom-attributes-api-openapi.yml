@@ -1,0 +1,297 @@
+openapi: 3.2.0
+info:
+  title: Connect v3 Custom Attributes API
+  version: 3.0.0
+  description: Public API gateway for AgendaPro.
+servers:
+- url: https://connect.agendapro.com
+  description: Production
+security:
+- BearerAuth: []
+tags:
+- name: Custom Attributes
+  description: Custom attribute templates (company-level definitions)
+paths:
+  /v3/custom_attributes:
+    get:
+      operationId: listCustomAttributeTemplates
+      summary: List Custom Attribute Templates
+      description: 'Returns the custom attribute templates configured for the company.
+
+        These define which custom attributes can be set on clients.
+
+
+        Use template `id` values when setting `custom_attributes` on client create/update.
+
+
+        ### Errors Dictionary
+
+
+        | **Status** | **Error** | **Detail** | **Description** |
+
+        | --- | --- | --- | --- |
+
+        | 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |
+
+        | 401 | unauthorized | api_config_inactive | API access is inactive for this company. |
+
+        | 403 | forbidden | scope_denied | API key lacks `custom_attributes:read` scope. |
+
+        | 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |
+
+        | 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |
+
+        | 502 | upstream_unavailable | | The upstream service is unavailable. |'
+      tags:
+      - Custom Attributes
+      responses:
+        '200':
+          description: List of custom attribute templates.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CustomAttributeTemplate'
+              examples:
+                templates:
+                  summary: '[Success] 200 OK - Custom attribute templates'
+                  value:
+                  - id: 1
+                    name: Preferred stylist
+                    datatype: text
+                    order: 1
+                    description: Pick your stylist
+                    mandatory: false
+                    attribute_group:
+                      id: 10
+                      name: Preferences
+                      order: 1
+                    attribute_categories: []
+                  - id: 2
+                    name: Hair type
+                    datatype: categoric
+                    order: 2
+                    description: null
+                    mandatory: true
+                    attribute_group: null
+                    attribute_categories:
+                    - id: 100
+                      category: Curly
+                      order: 1
+                    - id: 101
+                      category: Straight
+                      order: 2
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/UpstreamUnavailable'
+components:
+  responses:
+    UpstreamUnavailable:
+      description: Upstream service is unavailable.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            upstreamUnavailable:
+              summary: '[Error] 502 Bad Gateway - Upstream unavailable'
+              value:
+                error: upstream_unavailable
+                detail: The upstream service is unavailable
+    Unauthorized:
+      description: Missing or invalid Bearer API key, or inactive API configuration.
+      headers:
+        WWW-Authenticate:
+          schema:
+            type: string
+            example: Bearer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            invalidApiKey:
+              summary: '[Error] 401 Unauthorized - Invalid API key'
+              value:
+                error: unauthorized
+                detail: invalid_api_key
+            apiConfigInactive:
+              summary: '[Error] 401 Unauthorized - API access inactive'
+              value:
+                error: unauthorized
+                detail: api_config_inactive
+    RateLimited:
+      description: Rate limit exceeded. Check the `Retry-After` header.
+      headers:
+        Retry-After:
+          description: Seconds until the rate limit resets.
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            burstLimitExceeded:
+              summary: '[Error] 429 Too Many Requests - Burst limit'
+              value:
+                error: rate_limited
+                detail: burst_limit_exceeded
+            dailyQuotaExceeded:
+              summary: '[Error] 429 Too Many Requests - Daily quota'
+              value:
+                error: rate_limited
+                detail: daily_quota_exceeded
+    Forbidden:
+      description: API key lacks the required scope for this operation.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            scopeDenied:
+              summary: '[Error] 403 Forbidden - Scope denied'
+              value:
+                error: forbidden
+                detail: scope_denied
+    InternalServerError:
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            internalError:
+              summary: '[Error] 500 Internal Server Error - Internal error'
+              value:
+                error: internal_error
+                detail: unexpected
+  schemas:
+    CustomAttributeTemplate:
+      type: object
+      description: Custom attribute template (company-level definition).
+      properties:
+        id:
+          type: integer
+          description: Template ID. Use this when setting custom_attributes on clients.
+          example: 1
+        name:
+          type: string
+          description: Attribute name.
+          example: Preferred stylist
+        datatype:
+          type: string
+          enum:
+          - boolean
+          - categoric
+          - date
+          - datetime
+          - file
+          - float
+          - integer
+          - text
+          - textarea
+          description: Attribute data type.
+          example: text
+        order:
+          type: integer
+          description: Display order.
+          example: 1
+        description:
+          type:
+          - string
+          - 'null'
+          description: Attribute description.
+          example: Pick your stylist
+        mandatory:
+          type: boolean
+          description: Whether the attribute is required.
+          example: false
+        attribute_group:
+          $ref: '#/components/schemas/AttributeGroup'
+        attribute_categories:
+          type: array
+          description: Available categories (only for categoric datatype).
+          items:
+            $ref: '#/components/schemas/AttributeCategory'
+      required:
+      - id
+      - name
+      - datatype
+      - order
+      - mandatory
+    ErrorDetailResponse:
+      type: object
+      description: 'Standard error response.
+
+        The `error` field contains the error type and the `detail` field
+
+        provides additional context.
+
+        '
+      properties:
+        error:
+          type: string
+          description: Error type identifier.
+          example: unauthorized
+        detail:
+          type:
+          - string
+          - 'null'
+          description: Additional context about the error.
+          example: invalid_api_key
+      required:
+      - error
+    AttributeCategory:
+      type: object
+      description: Category option for categoric custom attributes.
+      properties:
+        id:
+          type: integer
+          description: Category ID.
+          example: 100
+        category:
+          type: string
+          description: Category label.
+          example: Curly
+        order:
+          type: integer
+          description: Display order.
+          example: 1
+      required:
+      - id
+      - category
+      - order
+    AttributeGroup:
+      type: object
+      description: Grouping for custom attributes.
+      properties:
+        id:
+          type: integer
+          description: Group ID.
+          example: 10
+        name:
+          type: string
+          description: Group name.
+          example: Preferences
+        order:
+          type: integer
+          description: Display order.
+          example: 1
+      required:
+      - id
+      - name
+      - order
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: 'API key issued per company. Pass as Authorization: Bearer <key>.'

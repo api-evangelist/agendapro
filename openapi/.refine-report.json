@@ -1,0 +1,40 @@
+{
+  "provider": "agendapro",
+  "sources": [
+    "_original/agendapro-connect-v3-openapi.yml"
+  ],
+  "outputs": [
+    "agendapro-available-slots-api-openapi.yml",
+    "agendapro-bookings-api-openapi.yml",
+    "agendapro-carts-api-openapi.yml",
+    "agendapro-clients-api-openapi.yml",
+    "agendapro-custom-attributes-api-openapi.yml",
+    "agendapro-locations-api-openapi.yml",
+    "agendapro-payment-requests-api-openapi.yml",
+    "agendapro-providers-api-openapi.yml",
+    "agendapro-sales-api-openapi.yml",
+    "agendapro-services-api-openapi.yml"
+  ],
+  "archived": [],
+  "errors": [],
+  "warnings": [],
+  "notes": [
+    "1 archived document(s) dropped as subsets of other archived documents",
+    "sourced from openapi/_original/ (1 archived document(s)); previously refined output at the top level was skipped rather than re-split",
+    "agendapro-connect-v3-openapi.yml: upgraded openapi 3.0.3 -> OpenAPI 3.2.0",
+    "apis.yml register: already-registered"
+  ],
+  "skipped": [
+    "_original/platform-connect-v3.json: archived document superseded by a larger archived document",
+    "agendapro-available-slots-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "agendapro-bookings-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "agendapro-carts-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "agendapro-clients-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "agendapro-custom-attributes-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "agendapro-locations-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "agendapro-payment-requests-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "agendapro-providers-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "agendapro-sales-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "agendapro-services-api-openapi.yml: previously refined output, superseded by openapi/_original/"
+  ]
+}

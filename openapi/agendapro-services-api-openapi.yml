@@ -1,0 +1,829 @@
+openapi: 3.2.0
+info:
+  title: Connect v3 Services API
+  version: 3.0.0
+  description: Public API gateway for AgendaPro.
+servers:
+- url: https://connect.agendapro.com
+  description: Production
+security:
+- BearerAuth: []
+tags:
+- name: Services
+  description: Service catalog listing and details
+paths:
+  /v3/services:
+    get:
+      operationId: listServices
+      summary: List Services
+      description: 'This endpoint returns a paginated list of services for the company.
+
+
+        ### Errors Dictionary
+
+
+        | **Status** | **Error** | **Detail** | **Description** |
+
+        | --- | --- | --- | --- |
+
+        | 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |
+
+        | 401 | unauthorized | api_config_inactive | API access is inactive for this company. |
+
+        | 403 | forbidden | scope_denied | API key lacks `services:read` scope. |
+
+        | 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |
+
+        | 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |
+
+        | 502 | upstream_unavailable | | The upstream service is unavailable. |'
+      tags:
+      - Services
+      parameters:
+      - name: provider_id
+        in: query
+        description: Filter by provider ID.
+        required: false
+        schema:
+          type: integer
+      - name: page
+        in: query
+        description: Page number (defaults to 1).
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      - name: per_page
+        in: query
+        description: Records per page (defaults to 30, max 100).
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 30
+      responses:
+        '200':
+          description: Paginated list of services.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceListResponse'
+              examples:
+                serviceList:
+                  summary: '[Success] 200 OK - Service list'
+                  value:
+                    data:
+                    - id: 10
+                      uuid: svc-uuid-1
+                      name: Corte clasico
+                      active: true
+                      price: '15000'
+                      discount: '0.0'
+                      has_discount: false
+                      duration: 30
+                      description: Classic haircut service
+                      type: service
+                      online_booking: true
+                      online_payment:
+                        mode: NOT_AVAILABLE
+                        amount: null
+                      outcall: false
+                      is_video: false
+                      category:
+                        id: 1
+                        name: Hair
+                      image:
+                        id: 55
+                        url: https://cdn.example.com/services/10/img1.jpg
+                      location_id: 1
+                      company_id: 100
+                      favorite: true
+                      created_at: '2025-01-01T12:00:00-03:00'
+                      updated_at: '2025-06-15T09:30:00-03:00'
+                    pagination:
+                      current_page: 1
+                      per_page: 30
+                      next_page: null
+                      prev_page: null
+                      total_records: 1
+                      total_pages: 1
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/UpstreamUnavailable'
+  /v3/services/{id}:
+    get:
+      operationId: getService
+      summary: Get Service
+      description: 'This endpoint returns a single service by ID.
+
+
+        ### Errors Dictionary
+
+
+        | **Status** | **Error** | **Detail** | **Description** |
+
+        | --- | --- | --- | --- |
+
+        | 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |
+
+        | 401 | unauthorized | api_config_inactive | API access is inactive for this company. |
+
+        | 403 | forbidden | scope_denied | API key lacks `services:read` scope. |
+
+        | 404 | not_found | service | Service not found. |
+
+        | 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |
+
+        | 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |
+
+        | 502 | upstream_unavailable | | The upstream service is unavailable. |'
+      tags:
+      - Services
+      parameters:
+      - $ref: '#/components/parameters/ServiceId'
+      responses:
+        '200':
+          description: Service found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/UpstreamUnavailable'
+  /v3/categories:
+    get:
+      operationId: listCategories
+      summary: List Categories
+      description: 'This endpoint returns a paginated list of service categories for the company,
+
+        ordered by the `order` field ascending (ties broken by `id` ascending).
+
+
+        ### Errors Dictionary
+
+
+        | **Status** | **Error** | **Detail** | **Description** |
+
+        | --- | --- | --- | --- |
+
+        | 401 | unauthorized | invalid_api_key | Missing or invalid Bearer token. |
+
+        | 401 | unauthorized | api_config_inactive | API access is inactive for this company. |
+
+        | 403 | forbidden | scope_denied | API key lacks `categories:read` scope. |
+
+        | 429 | rate_limited | burst_limit_exceeded | Per-minute request limit exceeded. |
+
+        | 429 | rate_limited | daily_quota_exceeded | Daily request quota exceeded. |
+
+        | 502 | upstream_unavailable | | The upstream service is unavailable. |'
+      tags:
+      - Services
+      parameters:
+      - name: page
+        in: query
+        description: Page number (defaults to 1).
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      - name: per_page
+        in: query
+        description: Records per page (defaults to 30, max 100).
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 30
+      responses:
+        '200':
+          description: Paginated list of categories.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryListResponse'
+              examples:
+                categoryList:
+                  summary: '[Success] 200 OK - Category list'
+                  value:
+                    data:
+                    - id: 1
+                      name: Cortes
+                      order: 1
+                      created_at: '2025-01-15T10:30:00-03:00'
+                      updated_at: '2025-01-15T10:30:00-03:00'
+                    - id: 2
+                      name: Coloracion
+                      order: 2
+                      created_at: '2025-01-15T10:30:00-03:00'
+                      updated_at: '2025-01-15T10:30:00-03:00'
+                    pagination:
+                      current_page: 1
+                      per_page: 30
+                      next_page: null
+                      prev_page: null
+                      total_records: 2
+                      total_pages: 1
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/UpstreamUnavailable'
+components:
+  responses:
+    UpstreamUnavailable:
+      description: Upstream service is unavailable.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            upstreamUnavailable:
+              summary: '[Error] 502 Bad Gateway - Upstream unavailable'
+              value:
+                error: upstream_unavailable
+                detail: The upstream service is unavailable
+    Unauthorized:
+      description: Missing or invalid Bearer API key, or inactive API configuration.
+      headers:
+        WWW-Authenticate:
+          schema:
+            type: string
+            example: Bearer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            invalidApiKey:
+              summary: '[Error] 401 Unauthorized - Invalid API key'
+              value:
+                error: unauthorized
+                detail: invalid_api_key
+            apiConfigInactive:
+              summary: '[Error] 401 Unauthorized - API access inactive'
+              value:
+                error: unauthorized
+                detail: api_config_inactive
+    RateLimited:
+      description: Rate limit exceeded. Check the `Retry-After` header.
+      headers:
+        Retry-After:
+          description: Seconds until the rate limit resets.
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            burstLimitExceeded:
+              summary: '[Error] 429 Too Many Requests - Burst limit'
+              value:
+                error: rate_limited
+                detail: burst_limit_exceeded
+            dailyQuotaExceeded:
+              summary: '[Error] 429 Too Many Requests - Daily quota'
+              value:
+                error: rate_limited
+                detail: daily_quota_exceeded
+    Forbidden:
+      description: API key lacks the required scope for this operation.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            scopeDenied:
+              summary: '[Error] 403 Forbidden - Scope denied'
+              value:
+                error: forbidden
+                detail: scope_denied
+    InternalServerError:
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            internalError:
+              summary: '[Error] 500 Internal Server Error - Internal error'
+              value:
+                error: internal_error
+                detail: unexpected
+    NotFound:
+      description: Resource not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            notFound:
+              summary: '[Error] 404 Not Found - Resource not found'
+              value:
+                error: not_found
+                detail: booking
+  parameters:
+    ServiceId:
+      name: id
+      in: path
+      required: true
+      description: Service unique identifier.
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+  schemas:
+    ServiceIndex:
+      type: object
+      description: 'Service list item (filtered for public API). Unlike ServiceDetail, the list shape carries a single `image` (the service''s first image) and does not include `images` or `providers` — fetch the service detail for the full image list and providers.
+
+        '
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Unique service ID.
+          example: 10
+        uuid:
+          type: string
+          format: uuid
+          description: Service UUID.
+          example: svc-uuid-1
+        name:
+          type: string
+          description: Service name.
+          example: Corte clasico
+        active:
+          type: boolean
+          description: Whether the service is active.
+          example: true
+        price:
+          type: string
+          description: Service price.
+          example: '15000'
+        discount:
+          type:
+          - string
+          - 'null'
+          description: Online payment discount as a percentage of the price (0-100). Applies to the price when the booking is paid online (`paying_price = price * (100 - discount) / 100`). Only meaningful when `has_discount` is true and `online_payment.mode` is not `NOT_AVAILABLE`.
+          example: '10.0'
+        has_discount:
+          type: boolean
+          description: Whether the service has an online payment discount.
+          example: false
+        duration:
+          type: integer
+          description: Duration in minutes (5-1439).
+          example: 30
+        description:
+          type:
+          - string
+          - 'null'
+          description: Service description.
+          example: Classic haircut service
+        type:
+          type: string
+          enum:
+          - service
+          - class
+          - session
+          description: Service type.
+          example: service
+        online_booking:
+          type: boolean
+          description: Whether online booking is enabled.
+          example: true
+        online_payment:
+          type: object
+          description: Online payment configuration.
+          properties:
+            mode:
+              type: string
+              enum:
+              - NOT_AVAILABLE
+              - OPTIONAL
+              - MANDATORY_PARTIAL
+              - MANDATORY_TOTAL
+              example: NOT_AVAILABLE
+            amount:
+              type:
+              - number
+              - 'null'
+          required:
+          - mode
+        outcall:
+          type: boolean
+          description: Whether the service supports outcall.
+          example: false
+        is_video:
+          type: boolean
+          description: Whether the service is a video call.
+          example: false
+        category:
+          type:
+          - object
+          - 'null'
+          description: Service category.
+          properties:
+            id:
+              type: integer
+              example: 1
+            name:
+              type: string
+              example: Hair
+          required:
+          - id
+          - name
+        image:
+          type:
+          - object
+          - 'null'
+          description: First service image, or null when the service has no images.
+          properties:
+            id:
+              type: integer
+              example: 1
+            url:
+              type: string
+              example: https://cdn.example.com/services/10/img1.jpg
+          required:
+          - id
+          - url
+        location_id:
+          type:
+          - integer
+          - 'null'
+          description: Location ID (if location-specific).
+        company_id:
+          type: integer
+          description: Company ID.
+          example: 100
+        favorite:
+          type: boolean
+          description: Whether the service is marked as favorite.
+          example: true
+        created_at:
+          type: string
+          format: date-time
+          description: Creation timestamp.
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp.
+      required:
+      - id
+      - uuid
+      - name
+      - active
+      - price
+      - discount
+      - has_discount
+      - duration
+      - description
+      - type
+      - online_booking
+      - online_payment
+      - outcall
+      - is_video
+      - category
+      - image
+      - location_id
+      - company_id
+      - favorite
+      - created_at
+      - updated_at
+    ErrorDetailResponse:
+      type: object
+      description: 'Standard error response.
+
+        The `error` field contains the error type and the `detail` field
+
+        provides additional context.
+
+        '
+      properties:
+        error:
+          type: string
+          description: Error type identifier.
+          example: unauthorized
+        detail:
+          type:
+          - string
+          - 'null'
+          description: Additional context about the error.
+          example: invalid_api_key
+      required:
+      - error
+    CategoryListResponse:
+      type: object
+      description: Paginated category list response.
+      properties:
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Category'
+      required:
+      - pagination
+      - data
+    ServiceDetail:
+      type: object
+      description: Service resource (filtered for public API).
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Unique service ID.
+          example: 10
+        uuid:
+          type: string
+          format: uuid
+          description: Service UUID.
+          example: svc-uuid-1
+        name:
+          type: string
+          description: Service name.
+          example: Corte clasico
+        active:
+          type: boolean
+          description: Whether the service is active.
+          example: true
+        price:
+          type: string
+          description: Service price.
+          example: '15000'
+        discount:
+          type:
+          - string
+          - 'null'
+          description: Online payment discount as a percentage of the price (0-100). Applies to the price when the booking is paid online (`paying_price = price * (100 - discount) / 100`). Only meaningful when `has_discount` is true and `online_payment.mode` is not `NOT_AVAILABLE`.
+          example: '10.0'
+        has_discount:
+          type: boolean
+          description: Whether the service has an online payment discount.
+          example: false
+        duration:
+          type: integer
+          description: Duration in minutes (5-1439).
+          example: 30
+        description:
+          type:
+          - string
+          - 'null'
+          description: Service description.
+          example: Classic haircut service
+        type:
+          type: string
+          enum:
+          - service
+          - class
+          - session
+          description: Service type.
+          example: service
+        online_booking:
+          type: boolean
+          description: Whether online booking is enabled.
+          example: true
+        online_payment:
+          type: object
+          description: Online payment configuration.
+          properties:
+            mode:
+              type: string
+              enum:
+              - NOT_AVAILABLE
+              - OPTIONAL
+              - MANDATORY_PARTIAL
+              - MANDATORY_TOTAL
+              example: NOT_AVAILABLE
+            amount:
+              type:
+              - number
+              - 'null'
+          required:
+          - mode
+        outcall:
+          type: boolean
+          description: Whether the service supports outcall.
+          example: false
+        is_video:
+          type: boolean
+          description: Whether the service is a video call.
+          example: false
+        category:
+          type:
+          - object
+          - 'null'
+          description: Service category.
+          properties:
+            id:
+              type: integer
+              example: 1
+            name:
+              type: string
+              example: Hair
+          required:
+          - id
+          - name
+        images:
+          type: array
+          description: Service images (max 3).
+          items:
+            $ref: '#/components/schemas/ServiceImage'
+        providers:
+          type: array
+          description: Providers that deliver this service.
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                example: 5
+              name:
+                type: string
+                example: John Stylist
+            required:
+            - id
+            - name
+        location_id:
+          type:
+          - integer
+          - 'null'
+          description: Location ID (if location-specific).
+        company_id:
+          type: integer
+          description: Company ID.
+          example: 100
+        favorite:
+          type: boolean
+          description: Whether the service is marked as favorite.
+          example: true
+        created_at:
+          type: string
+          format: date-time
+          description: Creation timestamp.
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp.
+      required:
+      - id
+      - uuid
+      - name
+      - active
+      - price
+      - discount
+      - has_discount
+      - duration
+      - description
+      - type
+      - online_booking
+      - online_payment
+      - outcall
+      - is_video
+      - category
+      - images
+      - providers
+      - location_id
+      - company_id
+      - favorite
+      - created_at
+      - updated_at
+    Category:
+      type: object
+      description: Service category resource (filtered for public API).
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Unique category ID.
+          example: 1
+        name:
+          type: string
+          description: Category name.
+          example: Cortes
+        order:
+          type: integer
+          description: Display order configured by the company (list is sorted by this field ascending).
+          example: 1
+        created_at:
+          type: string
+          format: date-time
+          description: Creation timestamp.
+          example: '2025-01-15T10:30:00-03:00'
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp.
+          example: '2025-01-15T10:30:00-03:00'
+      required:
+      - id
+      - name
+      - order
+      - created_at
+      - updated_at
+    Pagination:
+      type: object
+      description: Pagination metadata.
+      properties:
+        current_page:
+          type: integer
+          minimum: 1
+          description: Current page.
+          example: 1
+        per_page:
+          type: integer
+          minimum: 1
+          maximum: 100
+          description: Records per page.
+          example: 30
+        next_page:
+          type:
+          - integer
+          - 'null'
+          minimum: 1
+          description: Next page number, or null on the last page.
+          example: 2
+        prev_page:
+          type:
+          - integer
+          - 'null'
+          minimum: 1
+          description: Previous page number, or null on the first page.
+          example: null
+        total_records:
+          type: integer
+          minimum: 0
+          description: Total records.
+          example: 95
+        total_pages:
+          type: integer
+          minimum: 0
+          description: Total pages.
+          example: 4
+      required:
+      - current_page
+      - per_page
+      - next_page
+      - prev_page
+      - total_records
+      - total_pages
+    ServiceImage:
+      type: object
+      description: Service image.
+      properties:
+        id:
+          type: integer
+          example: 1
+        url:
+          type: string
+          example: https://cdn.example.com/services/10/img1.jpg
+      required:
+      - id
+      - url
+    ServiceListResponse:
+      type: object
+      description: Paginated service list response.
+      properties:
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceIndex'
+      required:
+      - pagination
+      - data
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: 'API key issued per company. Pass as Authorization: Bearer <key>.'
