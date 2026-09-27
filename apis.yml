@@ -31,7 +31,8 @@ tags:
 - Webhook
 - Vertical SaaS
 - Latin America
-- SMB Software
+- Small Business
+- Scheduling
 tags_raw:
 - appointment-scheduling
 - booking
@@ -45,6 +46,8 @@ tags_raw:
 - vertical-saas
 - latin-america
 - smb-software
+- Scheduling
+- SMB Software
 apis:
 - aid: agendapro:agendapro-available-slots-api
   name: AgendaPro Available Slots API
