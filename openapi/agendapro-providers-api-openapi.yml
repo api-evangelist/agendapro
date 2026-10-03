@@ -197,6 +197,109 @@ paths:
         '502':
           $ref: '#/components/responses/UpstreamUnavailable'
 components:
+  responses:
+    RateLimited:
+      description: Rate limit exceeded. Check the `Retry-After` header.
+      headers:
+        Retry-After:
+          description: Seconds until the rate limit resets.
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            burstLimitExceeded:
+              summary: '[Error] 429 Too Many Requests - Burst limit'
+              value:
+                error: rate_limited
+                detail: burst_limit_exceeded
+            dailyQuotaExceeded:
+              summary: '[Error] 429 Too Many Requests - Daily quota'
+              value:
+                error: rate_limited
+                detail: daily_quota_exceeded
+    UpstreamUnavailable:
+      description: Upstream service is unavailable.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            upstreamUnavailable:
+              summary: '[Error] 502 Bad Gateway - Upstream unavailable'
+              value:
+                error: upstream_unavailable
+                detail: The upstream service is unavailable
+    Forbidden:
+      description: API key lacks the required scope for this operation.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            scopeDenied:
+              summary: '[Error] 403 Forbidden - Scope denied'
+              value:
+                error: forbidden
+                detail: scope_denied
+    Unauthorized:
+      description: Missing or invalid Bearer API key, or inactive API configuration.
+      headers:
+        WWW-Authenticate:
+          schema:
+            type: string
+            example: Bearer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            invalidApiKey:
+              summary: '[Error] 401 Unauthorized - Invalid API key'
+              value:
+                error: unauthorized
+                detail: invalid_api_key
+            apiConfigInactive:
+              summary: '[Error] 401 Unauthorized - API access inactive'
+              value:
+                error: unauthorized
+                detail: api_config_inactive
+    InternalServerError:
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            internalError:
+              summary: '[Error] 500 Internal Server Error - Internal error'
+              value:
+                error: internal_error
+                detail: unexpected
+    NotFound:
+      description: Resource not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            notFound:
+              summary: '[Error] 404 Not Found - Resource not found'
+              value:
+                error: not_found
+                detail: booking
+  parameters:
+    ProviderId:
+      name: id
+      in: path
+      required: true
+      description: Provider unique identifier.
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
   schemas:
     ErrorDetailResponse:
       type: object
@@ -220,6 +323,19 @@ components:
           example: invalid_api_key
       required:
       - error
+    ProviderListResponse:
+      type: object
+      description: Paginated provider list response.
+      properties:
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Provider'
+      required:
+      - pagination
+      - data
     ProviderTime:
       type: object
       description: Provider working hours for a day.
@@ -319,19 +435,6 @@ components:
       - images
       - provider_open_days
       - provider_times
-    ProviderListResponse:
-      type: object
-      description: Paginated provider list response.
-      properties:
-        pagination:
-          $ref: '#/components/schemas/Pagination'
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/Provider'
-      required:
-      - pagination
-      - data
     Pagination:
       type: object
       description: Pagination metadata.
@@ -378,109 +481,6 @@ components:
       - prev_page
       - total_records
       - total_pages
-  responses:
-    UpstreamUnavailable:
-      description: Upstream service is unavailable.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorDetailResponse'
-          examples:
-            upstreamUnavailable:
-              summary: '[Error] 502 Bad Gateway - Upstream unavailable'
-              value:
-                error: upstream_unavailable
-                detail: The upstream service is unavailable
-    Forbidden:
-      description: API key lacks the required scope for this operation.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorDetailResponse'
-          examples:
-            scopeDenied:
-              summary: '[Error] 403 Forbidden - Scope denied'
-              value:
-                error: forbidden
-                detail: scope_denied
-    Unauthorized:
-      description: Missing or invalid Bearer API key, or inactive API configuration.
-      headers:
-        WWW-Authenticate:
-          schema:
-            type: string
-            example: Bearer
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorDetailResponse'
-          examples:
-            invalidApiKey:
-              summary: '[Error] 401 Unauthorized - Invalid API key'
-              value:
-                error: unauthorized
-                detail: invalid_api_key
-            apiConfigInactive:
-              summary: '[Error] 401 Unauthorized - API access inactive'
-              value:
-                error: unauthorized
-                detail: api_config_inactive
-    InternalServerError:
-      description: Internal server error.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorDetailResponse'
-          examples:
-            internalError:
-              summary: '[Error] 500 Internal Server Error - Internal error'
-              value:
-                error: internal_error
-                detail: unexpected
-    NotFound:
-      description: Resource not found.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorDetailResponse'
-          examples:
-            notFound:
-              summary: '[Error] 404 Not Found - Resource not found'
-              value:
-                error: not_found
-                detail: booking
-    RateLimited:
-      description: Rate limit exceeded. Check the `Retry-After` header.
-      headers:
-        Retry-After:
-          description: Seconds until the rate limit resets.
-          schema:
-            type: integer
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorDetailResponse'
-          examples:
-            burstLimitExceeded:
-              summary: '[Error] 429 Too Many Requests - Burst limit'
-              value:
-                error: rate_limited
-                detail: burst_limit_exceeded
-            dailyQuotaExceeded:
-              summary: '[Error] 429 Too Many Requests - Daily quota'
-              value:
-                error: rate_limited
-                detail: daily_quota_exceeded
-  parameters:
-    ProviderId:
-      name: id
-      in: path
-      required: true
-      description: Provider unique identifier.
-      schema:
-        type: integer
-        format: int64
-        minimum: 1
   securitySchemes:
     BearerAuth:
       type: http

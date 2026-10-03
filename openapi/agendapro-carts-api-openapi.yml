@@ -237,29 +237,100 @@ paths:
         '502':
           $ref: '#/components/responses/UpstreamUnavailable'
 components:
+  responses:
+    RateLimited:
+      description: Rate limit exceeded. Check the `Retry-After` header.
+      headers:
+        Retry-After:
+          description: Seconds until the rate limit resets.
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            burstLimitExceeded:
+              summary: '[Error] 429 Too Many Requests - Burst limit'
+              value:
+                error: rate_limited
+                detail: burst_limit_exceeded
+            dailyQuotaExceeded:
+              summary: '[Error] 429 Too Many Requests - Daily quota'
+              value:
+                error: rate_limited
+                detail: daily_quota_exceeded
+    UpstreamUnavailable:
+      description: Upstream service is unavailable.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            upstreamUnavailable:
+              summary: '[Error] 502 Bad Gateway - Upstream unavailable'
+              value:
+                error: upstream_unavailable
+                detail: The upstream service is unavailable
+    Forbidden:
+      description: API key lacks the required scope for this operation.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            scopeDenied:
+              summary: '[Error] 403 Forbidden - Scope denied'
+              value:
+                error: forbidden
+                detail: scope_denied
+    Unauthorized:
+      description: Missing or invalid Bearer API key, or inactive API configuration.
+      headers:
+        WWW-Authenticate:
+          schema:
+            type: string
+            example: Bearer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            invalidApiKey:
+              summary: '[Error] 401 Unauthorized - Invalid API key'
+              value:
+                error: unauthorized
+                detail: invalid_api_key
+            apiConfigInactive:
+              summary: '[Error] 401 Unauthorized - API access inactive'
+              value:
+                error: unauthorized
+                detail: api_config_inactive
+    InternalServerError:
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            internalError:
+              summary: '[Error] 500 Internal Server Error - Internal error'
+              value:
+                error: internal_error
+                detail: unexpected
+    NotFound:
+      description: Resource not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            notFound:
+              summary: '[Error] 404 Not Found - Resource not found'
+              value:
+                error: not_found
+                detail: booking
   schemas:
-    ErrorDetailResponse:
-      type: object
-      description: 'Standard error response.
-
-        The `error` field contains the error type and the `detail` field
-
-        provides additional context.
-
-        '
-      properties:
-        error:
-          type: string
-          description: Error type identifier.
-          example: unauthorized
-        detail:
-          type:
-          - string
-          - 'null'
-          description: Additional context about the error.
-          example: invalid_api_key
-      required:
-      - error
     Cart:
       type: object
       description: Cart resource (filtered for public API).
@@ -348,6 +419,30 @@ components:
         updated_at:
           type: string
           format: date-time
+    CartInput:
+      type: object
+      description: Cart creation payload. The company is taken from the API key.
+      required:
+      - items
+      properties:
+        client_id:
+          type:
+          - integer
+          - 'null'
+          description: Client the cart (and resulting sale/booking) belongs to.
+        location_id:
+          type:
+          - integer
+          - 'null'
+        note:
+          type:
+          - string
+          - 'null'
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/CartItemInput'
     CartItemInput:
       type: object
       description: Cart item payload. Validation rules per item_type live in platform-sales.
@@ -432,6 +527,28 @@ components:
                   creative_source:
                     type: string
                     description: Defaults to `connect` when omitted.
+    ErrorDetailResponse:
+      type: object
+      description: 'Standard error response.
+
+        The `error` field contains the error type and the `detail` field
+
+        provides additional context.
+
+        '
+      properties:
+        error:
+          type: string
+          description: Error type identifier.
+          example: unauthorized
+        detail:
+          type:
+          - string
+          - 'null'
+          description: Additional context about the error.
+          example: invalid_api_key
+      required:
+      - error
     CartUpdateInput:
       type: object
       description: Cart update payload. `items` replaces the full items array.
@@ -448,123 +565,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/CartItemInput'
-    CartInput:
-      type: object
-      description: Cart creation payload. The company is taken from the API key.
-      required:
-      - items
-      properties:
-        client_id:
-          type:
-          - integer
-          - 'null'
-          description: Client the cart (and resulting sale/booking) belongs to.
-        location_id:
-          type:
-          - integer
-          - 'null'
-        note:
-          type:
-          - string
-          - 'null'
-        items:
-          type: array
-          minItems: 1
-          items:
-            $ref: '#/components/schemas/CartItemInput'
-  responses:
-    UpstreamUnavailable:
-      description: Upstream service is unavailable.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorDetailResponse'
-          examples:
-            upstreamUnavailable:
-              summary: '[Error] 502 Bad Gateway - Upstream unavailable'
-              value:
-                error: upstream_unavailable
-                detail: The upstream service is unavailable
-    Forbidden:
-      description: API key lacks the required scope for this operation.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorDetailResponse'
-          examples:
-            scopeDenied:
-              summary: '[Error] 403 Forbidden - Scope denied'
-              value:
-                error: forbidden
-                detail: scope_denied
-    Unauthorized:
-      description: Missing or invalid Bearer API key, or inactive API configuration.
-      headers:
-        WWW-Authenticate:
-          schema:
-            type: string
-            example: Bearer
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorDetailResponse'
-          examples:
-            invalidApiKey:
-              summary: '[Error] 401 Unauthorized - Invalid API key'
-              value:
-                error: unauthorized
-                detail: invalid_api_key
-            apiConfigInactive:
-              summary: '[Error] 401 Unauthorized - API access inactive'
-              value:
-                error: unauthorized
-                detail: api_config_inactive
-    InternalServerError:
-      description: Internal server error.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorDetailResponse'
-          examples:
-            internalError:
-              summary: '[Error] 500 Internal Server Error - Internal error'
-              value:
-                error: internal_error
-                detail: unexpected
-    NotFound:
-      description: Resource not found.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorDetailResponse'
-          examples:
-            notFound:
-              summary: '[Error] 404 Not Found - Resource not found'
-              value:
-                error: not_found
-                detail: booking
-    RateLimited:
-      description: Rate limit exceeded. Check the `Retry-After` header.
-      headers:
-        Retry-After:
-          description: Seconds until the rate limit resets.
-          schema:
-            type: integer
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorDetailResponse'
-          examples:
-            burstLimitExceeded:
-              summary: '[Error] 429 Too Many Requests - Burst limit'
-              value:
-                error: rate_limited
-                detail: burst_limit_exceeded
-            dailyQuotaExceeded:
-              summary: '[Error] 429 Too Many Requests - Daily quota'
-              value:
-                error: rate_limited
-                detail: daily_quota_exceeded
   parameters:
     CartId:
       name: id

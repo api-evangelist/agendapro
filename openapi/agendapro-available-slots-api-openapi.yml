@@ -130,75 +130,29 @@ paths:
         '502':
           $ref: '#/components/responses/UpstreamUnavailable'
 components:
-  schemas:
-    ErrorDetailResponse:
-      type: object
-      description: 'Standard error response.
-
-        The `error` field contains the error type and the `detail` field
-
-        provides additional context.
-
-        '
-      properties:
-        error:
-          type: string
-          description: Error type identifier.
-          example: unauthorized
-        detail:
-          type:
-          - string
-          - 'null'
-          description: Additional context about the error.
-          example: invalid_api_key
-      required:
-      - error
-    AvailableSlot:
-      type: object
-      description: A single available booking slot.
-      properties:
-        start_time:
-          type: string
-          description: Slot start time (HH:MM).
-          example: 09:00
-        end_time:
-          type: string
-          description: Slot end time (HH:MM).
-          example: 09:30
-        provider_id:
-          type: integer
-          description: Provider ID for this slot.
-          example: 12964
-        provider_name:
-          type: string
-          description: Provider display name.
-          example: Dobby
-    AvailableSlotsMetadata:
-      type: object
-      description: Metadata summarising the available slots query.
-      properties:
-        location_id:
-          type: integer
-          description: Location ID queried.
-          example: 3257
-        date:
-          type: string
-          format: date
-          description: Date queried (YYYY-MM-DD).
-          example: '2026-04-08'
-        service_id:
-          type: integer
-          description: Service ID queried (if provided).
-          example: 3698
-        duration:
-          type: integer
-          description: Service duration in minutes.
-          example: 30
-        slots_count:
-          type: integer
-          description: Total number of slots returned.
-          example: 22
   responses:
+    RateLimited:
+      description: Rate limit exceeded. Check the `Retry-After` header.
+      headers:
+        Retry-After:
+          description: Seconds until the rate limit resets.
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            burstLimitExceeded:
+              summary: '[Error] 429 Too Many Requests - Burst limit'
+              value:
+                error: rate_limited
+                detail: burst_limit_exceeded
+            dailyQuotaExceeded:
+              summary: '[Error] 429 Too Many Requests - Daily quota'
+              value:
+                error: rate_limited
+                detail: daily_quota_exceeded
     UpstreamUnavailable:
       description: Upstream service is unavailable.
       content:
@@ -269,28 +223,74 @@ components:
               value:
                 error: not_found
                 detail: booking
-    RateLimited:
-      description: Rate limit exceeded. Check the `Retry-After` header.
-      headers:
-        Retry-After:
-          description: Seconds until the rate limit resets.
-          schema:
-            type: integer
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorDetailResponse'
-          examples:
-            burstLimitExceeded:
-              summary: '[Error] 429 Too Many Requests - Burst limit'
-              value:
-                error: rate_limited
-                detail: burst_limit_exceeded
-            dailyQuotaExceeded:
-              summary: '[Error] 429 Too Many Requests - Daily quota'
-              value:
-                error: rate_limited
-                detail: daily_quota_exceeded
+  schemas:
+    ErrorDetailResponse:
+      type: object
+      description: 'Standard error response.
+
+        The `error` field contains the error type and the `detail` field
+
+        provides additional context.
+
+        '
+      properties:
+        error:
+          type: string
+          description: Error type identifier.
+          example: unauthorized
+        detail:
+          type:
+          - string
+          - 'null'
+          description: Additional context about the error.
+          example: invalid_api_key
+      required:
+      - error
+    AvailableSlotsMetadata:
+      type: object
+      description: Metadata summarising the available slots query.
+      properties:
+        location_id:
+          type: integer
+          description: Location ID queried.
+          example: 3257
+        date:
+          type: string
+          format: date
+          description: Date queried (YYYY-MM-DD).
+          example: '2026-04-08'
+        service_id:
+          type: integer
+          description: Service ID queried (if provided).
+          example: 3698
+        duration:
+          type: integer
+          description: Service duration in minutes.
+          example: 30
+        slots_count:
+          type: integer
+          description: Total number of slots returned.
+          example: 22
+    AvailableSlot:
+      type: object
+      description: A single available booking slot.
+      properties:
+        start_time:
+          type: string
+          description: Slot start time (HH:MM).
+          example: 09:00
+        end_time:
+          type: string
+          description: Slot end time (HH:MM).
+          example: 09:30
+        provider_id:
+          type: integer
+          description: Provider ID for this slot.
+          example: 12964
+        provider_name:
+          type: string
+          description: Provider display name.
+          example: Dobby
   securitySchemes:
     BearerAuth:
       type: http

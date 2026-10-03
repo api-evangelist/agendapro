@@ -257,28 +257,6 @@ paths:
           $ref: '#/components/responses/UpstreamUnavailable'
 components:
   schemas:
-    ErrorDetailResponse:
-      type: object
-      description: 'Standard error response.
-
-        The `error` field contains the error type and the `detail` field
-
-        provides additional context.
-
-        '
-      properties:
-        error:
-          type: string
-          description: Error type identifier.
-          example: unauthorized
-        detail:
-          type:
-          - string
-          - 'null'
-          description: Additional context about the error.
-          example: invalid_api_key
-      required:
-      - error
     Category:
       type: object
       description: Service category resource (filtered for public API).
@@ -312,6 +290,54 @@ components:
       - order
       - created_at
       - updated_at
+    ServiceImage:
+      type: object
+      description: Service image.
+      properties:
+        id:
+          type: integer
+          example: 1
+        url:
+          type: string
+          example: https://cdn.example.com/services/10/img1.jpg
+      required:
+      - id
+      - url
+    ServiceListResponse:
+      type: object
+      description: Paginated service list response.
+      properties:
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceIndex'
+      required:
+      - pagination
+      - data
+    ErrorDetailResponse:
+      type: object
+      description: 'Standard error response.
+
+        The `error` field contains the error type and the `detail` field
+
+        provides additional context.
+
+        '
+      properties:
+        error:
+          type: string
+          description: Error type identifier.
+          example: unauthorized
+        detail:
+          type:
+          - string
+          - 'null'
+          description: Additional context about the error.
+          example: invalid_api_key
+      required:
+      - error
     ServiceDetail:
       type: object
       description: Service resource (filtered for public API).
@@ -475,6 +501,19 @@ components:
       - favorite
       - created_at
       - updated_at
+    CategoryListResponse:
+      type: object
+      description: Paginated category list response.
+      properties:
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Category'
+      required:
+      - pagination
+      - data
     ServiceIndex:
       type: object
       description: 'Service list item (filtered for public API). Unlike ServiceDetail, the list shape carries a single `image` (the service''s first image) and does not include `images` or `providers` — fetch the service detail for the full image list and providers.
@@ -634,45 +673,6 @@ components:
       - favorite
       - created_at
       - updated_at
-    ServiceListResponse:
-      type: object
-      description: Paginated service list response.
-      properties:
-        pagination:
-          $ref: '#/components/schemas/Pagination'
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/ServiceIndex'
-      required:
-      - pagination
-      - data
-    ServiceImage:
-      type: object
-      description: Service image.
-      properties:
-        id:
-          type: integer
-          example: 1
-        url:
-          type: string
-          example: https://cdn.example.com/services/10/img1.jpg
-      required:
-      - id
-      - url
-    CategoryListResponse:
-      type: object
-      description: Paginated category list response.
-      properties:
-        pagination:
-          $ref: '#/components/schemas/Pagination'
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/Category'
-      required:
-      - pagination
-      - data
     Pagination:
       type: object
       description: Pagination metadata.
@@ -744,6 +744,28 @@ components:
               value:
                 error: forbidden
                 detail: scope_denied
+    RateLimited:
+      description: Rate limit exceeded. Check the `Retry-After` header.
+      headers:
+        Retry-After:
+          description: Seconds until the rate limit resets.
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            burstLimitExceeded:
+              summary: '[Error] 429 Too Many Requests - Burst limit'
+              value:
+                error: rate_limited
+                detail: burst_limit_exceeded
+            dailyQuotaExceeded:
+              summary: '[Error] 429 Too Many Requests - Daily quota'
+              value:
+                error: rate_limited
+                detail: daily_quota_exceeded
     Unauthorized:
       description: Missing or invalid Bearer API key, or inactive API configuration.
       headers:
@@ -790,28 +812,6 @@ components:
               value:
                 error: not_found
                 detail: booking
-    RateLimited:
-      description: Rate limit exceeded. Check the `Retry-After` header.
-      headers:
-        Retry-After:
-          description: Seconds until the rate limit resets.
-          schema:
-            type: integer
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorDetailResponse'
-          examples:
-            burstLimitExceeded:
-              summary: '[Error] 429 Too Many Requests - Burst limit'
-              value:
-                error: rate_limited
-                detail: burst_limit_exceeded
-            dailyQuotaExceeded:
-              summary: '[Error] 429 Too Many Requests - Daily quota'
-              value:
-                error: rate_limited
-                detail: daily_quota_exceeded
   parameters:
     ServiceId:
       name: id

@@ -159,75 +159,29 @@ paths:
         '502':
           $ref: '#/components/responses/UpstreamUnavailable'
 components:
-  schemas:
-    ErrorDetailResponse:
-      type: object
-      description: 'Standard error response.
-
-        The `error` field contains the error type and the `detail` field
-
-        provides additional context.
-
-        '
-      properties:
-        error:
-          type: string
-          description: Error type identifier.
-          example: unauthorized
-        detail:
-          type:
-          - string
-          - 'null'
-          description: Additional context about the error.
-          example: invalid_api_key
-      required:
-      - error
-    PaymentRequest:
-      type: object
-      description: Payment request resource (filtered for public API).
-      properties:
-        id:
-          type: integer
-          format: int64
-          example: 900
-        uuid:
-          type: string
-          format: uuid
-        amount:
-          type: string
-          description: Amount to collect as decimal string (full cart total).
-          example: '20000.0'
-        status:
-          type: string
-          enum:
-          - pending
-          - paid
-          - expired
-          - cancelled
-        channel:
-          type: string
-          description: Always `online` for payment requests created through the public API.
-          example: online
-        params:
-          type: object
-          properties:
-            checkout_url:
-              type: string
-              format: uri
-              description: URL where the end customer completes the payment.
-            expires_at:
-              type:
-              - string
-              - 'null'
-              format: date-time
-              description: Present when bookings were reserved; the payment request expires at this time if unpaid.
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
   responses:
+    RateLimited:
+      description: Rate limit exceeded. Check the `Retry-After` header.
+      headers:
+        Retry-After:
+          description: Seconds until the rate limit resets.
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            burstLimitExceeded:
+              summary: '[Error] 429 Too Many Requests - Burst limit'
+              value:
+                error: rate_limited
+                detail: burst_limit_exceeded
+            dailyQuotaExceeded:
+              summary: '[Error] 429 Too Many Requests - Daily quota'
+              value:
+                error: rate_limited
+                detail: daily_quota_exceeded
     UpstreamUnavailable:
       description: Upstream service is unavailable.
       content:
@@ -298,43 +252,89 @@ components:
               value:
                 error: not_found
                 detail: booking
-    RateLimited:
-      description: Rate limit exceeded. Check the `Retry-After` header.
-      headers:
-        Retry-After:
-          description: Seconds until the rate limit resets.
-          schema:
-            type: integer
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorDetailResponse'
-          examples:
-            burstLimitExceeded:
-              summary: '[Error] 429 Too Many Requests - Burst limit'
-              value:
-                error: rate_limited
-                detail: burst_limit_exceeded
-            dailyQuotaExceeded:
-              summary: '[Error] 429 Too Many Requests - Daily quota'
-              value:
-                error: rate_limited
-                detail: daily_quota_exceeded
+  schemas:
+    ErrorDetailResponse:
+      type: object
+      description: 'Standard error response.
+
+        The `error` field contains the error type and the `detail` field
+
+        provides additional context.
+
+        '
+      properties:
+        error:
+          type: string
+          description: Error type identifier.
+          example: unauthorized
+        detail:
+          type:
+          - string
+          - 'null'
+          description: Additional context about the error.
+          example: invalid_api_key
+      required:
+      - error
+    PaymentRequest:
+      type: object
+      description: Payment request resource (filtered for public API).
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 900
+        uuid:
+          type: string
+          format: uuid
+        amount:
+          type: string
+          description: Amount to collect as decimal string (full cart total).
+          example: '20000.0'
+        status:
+          type: string
+          enum:
+          - pending
+          - paid
+          - expired
+          - cancelled
+        channel:
+          type: string
+          description: Always `online` for payment requests created through the public API.
+          example: online
+        params:
+          type: object
+          properties:
+            checkout_url:
+              type: string
+              format: uri
+              description: URL where the end customer completes the payment.
+            expires_at:
+              type:
+              - string
+              - 'null'
+              format: date-time
+              description: Present when bookings were reserved; the payment request expires at this time if unpaid.
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
   parameters:
-    CartId:
-      name: id
-      in: path
-      required: true
-      description: Cart unique identifier.
-      schema:
-        type: integer
-        format: int64
-        minimum: 1
     PaymentRequestId:
       name: id
       in: path
       required: true
       description: Payment request unique identifier.
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+    CartId:
+      name: id
+      in: path
+      required: true
+      description: Cart unique identifier.
       schema:
         type: integer
         format: int64

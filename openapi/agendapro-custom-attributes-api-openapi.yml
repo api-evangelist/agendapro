@@ -94,6 +94,26 @@ paths:
           $ref: '#/components/responses/UpstreamUnavailable'
 components:
   schemas:
+    AttributeGroup:
+      type: object
+      description: Grouping for custom attributes.
+      properties:
+        id:
+          type: integer
+          description: Group ID.
+          example: 10
+        name:
+          type: string
+          description: Group name.
+          example: Preferences
+        order:
+          type: integer
+          description: Display order.
+          example: 1
+      required:
+      - id
+      - name
+      - order
     ErrorDetailResponse:
       type: object
       description: 'Standard error response.
@@ -169,26 +189,6 @@ components:
       - datatype
       - order
       - mandatory
-    AttributeGroup:
-      type: object
-      description: Grouping for custom attributes.
-      properties:
-        id:
-          type: integer
-          description: Group ID.
-          example: 10
-        name:
-          type: string
-          description: Group name.
-          example: Preferences
-        order:
-          type: integer
-          description: Display order.
-          example: 1
-      required:
-      - id
-      - name
-      - order
     AttributeCategory:
       type: object
       description: Category option for categoric custom attributes.
@@ -210,6 +210,28 @@ components:
       - category
       - order
   responses:
+    RateLimited:
+      description: Rate limit exceeded. Check the `Retry-After` header.
+      headers:
+        Retry-After:
+          description: Seconds until the rate limit resets.
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            burstLimitExceeded:
+              summary: '[Error] 429 Too Many Requests - Burst limit'
+              value:
+                error: rate_limited
+                detail: burst_limit_exceeded
+            dailyQuotaExceeded:
+              summary: '[Error] 429 Too Many Requests - Daily quota'
+              value:
+                error: rate_limited
+                detail: daily_quota_exceeded
     UpstreamUnavailable:
       description: Upstream service is unavailable.
       content:
@@ -268,28 +290,6 @@ components:
               value:
                 error: internal_error
                 detail: unexpected
-    RateLimited:
-      description: Rate limit exceeded. Check the `Retry-After` header.
-      headers:
-        Retry-After:
-          description: Seconds until the rate limit resets.
-          schema:
-            type: integer
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorDetailResponse'
-          examples:
-            burstLimitExceeded:
-              summary: '[Error] 429 Too Many Requests - Burst limit'
-              value:
-                error: rate_limited
-                detail: burst_limit_exceeded
-            dailyQuotaExceeded:
-              summary: '[Error] 429 Too Many Requests - Daily quota'
-              value:
-                error: rate_limited
-                detail: daily_quota_exceeded
   securitySchemes:
     BearerAuth:
       type: http
