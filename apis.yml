@@ -356,6 +356,9 @@ apis:
   - type: Webhooks
     url: asyncapi/agendapro-webhooks.yml
 common:
+- type: CapabilityMap
+  url: capabilities/agendapro-capability-edges.yml
+  name: AgendaPro Business Capability Map
 - type: Website
   url: https://agendapro.com/
 - type: DeveloperPortal
