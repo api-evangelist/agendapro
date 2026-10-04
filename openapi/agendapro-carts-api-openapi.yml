@@ -238,28 +238,6 @@ paths:
           $ref: '#/components/responses/UpstreamUnavailable'
 components:
   responses:
-    RateLimited:
-      description: Rate limit exceeded. Check the `Retry-After` header.
-      headers:
-        Retry-After:
-          description: Seconds until the rate limit resets.
-          schema:
-            type: integer
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorDetailResponse'
-          examples:
-            burstLimitExceeded:
-              summary: '[Error] 429 Too Many Requests - Burst limit'
-              value:
-                error: rate_limited
-                detail: burst_limit_exceeded
-            dailyQuotaExceeded:
-              summary: '[Error] 429 Too Many Requests - Daily quota'
-              value:
-                error: rate_limited
-                detail: daily_quota_exceeded
     UpstreamUnavailable:
       description: Upstream service is unavailable.
       content:
@@ -306,18 +284,6 @@ components:
               value:
                 error: unauthorized
                 detail: api_config_inactive
-    InternalServerError:
-      description: Internal server error.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorDetailResponse'
-          examples:
-            internalError:
-              summary: '[Error] 500 Internal Server Error - Internal error'
-              value:
-                error: internal_error
-                detail: unexpected
     NotFound:
       description: Resource not found.
       content:
@@ -330,7 +296,63 @@ components:
               value:
                 error: not_found
                 detail: booking
+    InternalServerError:
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            internalError:
+              summary: '[Error] 500 Internal Server Error - Internal error'
+              value:
+                error: internal_error
+                detail: unexpected
+    RateLimited:
+      description: Rate limit exceeded. Check the `Retry-After` header.
+      headers:
+        Retry-After:
+          description: Seconds until the rate limit resets.
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            burstLimitExceeded:
+              summary: '[Error] 429 Too Many Requests - Burst limit'
+              value:
+                error: rate_limited
+                detail: burst_limit_exceeded
+            dailyQuotaExceeded:
+              summary: '[Error] 429 Too Many Requests - Daily quota'
+              value:
+                error: rate_limited
+                detail: daily_quota_exceeded
   schemas:
+    ErrorDetailResponse:
+      type: object
+      description: 'Standard error response.
+
+        The `error` field contains the error type and the `detail` field
+
+        provides additional context.
+
+        '
+      properties:
+        error:
+          type: string
+          description: Error type identifier.
+          example: unauthorized
+        detail:
+          type:
+          - string
+          - 'null'
+          description: Additional context about the error.
+          example: invalid_api_key
+      required:
+      - error
     Cart:
       type: object
       description: Cart resource (filtered for public API).
@@ -443,6 +465,22 @@ components:
           minItems: 1
           items:
             $ref: '#/components/schemas/CartItemInput'
+    CartUpdateInput:
+      type: object
+      description: Cart update payload. `items` replaces the full items array.
+      properties:
+        client_id:
+          type:
+          - integer
+          - 'null'
+        note:
+          type:
+          - string
+          - 'null'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartItemInput'
     CartItemInput:
       type: object
       description: Cart item payload. Validation rules per item_type live in platform-sales.
@@ -527,44 +565,6 @@ components:
                   creative_source:
                     type: string
                     description: Defaults to `connect` when omitted.
-    ErrorDetailResponse:
-      type: object
-      description: 'Standard error response.
-
-        The `error` field contains the error type and the `detail` field
-
-        provides additional context.
-
-        '
-      properties:
-        error:
-          type: string
-          description: Error type identifier.
-          example: unauthorized
-        detail:
-          type:
-          - string
-          - 'null'
-          description: Additional context about the error.
-          example: invalid_api_key
-      required:
-      - error
-    CartUpdateInput:
-      type: object
-      description: Cart update payload. `items` replaces the full items array.
-      properties:
-        client_id:
-          type:
-          - integer
-          - 'null'
-        note:
-          type:
-          - string
-          - 'null'
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/CartItemInput'
   parameters:
     CartId:
       name: id

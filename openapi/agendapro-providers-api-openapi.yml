@@ -198,28 +198,6 @@ paths:
           $ref: '#/components/responses/UpstreamUnavailable'
 components:
   responses:
-    RateLimited:
-      description: Rate limit exceeded. Check the `Retry-After` header.
-      headers:
-        Retry-After:
-          description: Seconds until the rate limit resets.
-          schema:
-            type: integer
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorDetailResponse'
-          examples:
-            burstLimitExceeded:
-              summary: '[Error] 429 Too Many Requests - Burst limit'
-              value:
-                error: rate_limited
-                detail: burst_limit_exceeded
-            dailyQuotaExceeded:
-              summary: '[Error] 429 Too Many Requests - Daily quota'
-              value:
-                error: rate_limited
-                detail: daily_quota_exceeded
     UpstreamUnavailable:
       description: Upstream service is unavailable.
       content:
@@ -266,18 +244,6 @@ components:
               value:
                 error: unauthorized
                 detail: api_config_inactive
-    InternalServerError:
-      description: Internal server error.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorDetailResponse'
-          examples:
-            internalError:
-              summary: '[Error] 500 Internal Server Error - Internal error'
-              value:
-                error: internal_error
-                detail: unexpected
     NotFound:
       description: Resource not found.
       content:
@@ -290,84 +256,41 @@ components:
               value:
                 error: not_found
                 detail: booking
-  parameters:
-    ProviderId:
-      name: id
-      in: path
-      required: true
-      description: Provider unique identifier.
-      schema:
-        type: integer
-        format: int64
-        minimum: 1
+    RateLimited:
+      description: Rate limit exceeded. Check the `Retry-After` header.
+      headers:
+        Retry-After:
+          description: Seconds until the rate limit resets.
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            burstLimitExceeded:
+              summary: '[Error] 429 Too Many Requests - Burst limit'
+              value:
+                error: rate_limited
+                detail: burst_limit_exceeded
+            dailyQuotaExceeded:
+              summary: '[Error] 429 Too Many Requests - Daily quota'
+              value:
+                error: rate_limited
+                detail: daily_quota_exceeded
+    InternalServerError:
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            internalError:
+              summary: '[Error] 500 Internal Server Error - Internal error'
+              value:
+                error: internal_error
+                detail: unexpected
   schemas:
-    ErrorDetailResponse:
-      type: object
-      description: 'Standard error response.
-
-        The `error` field contains the error type and the `detail` field
-
-        provides additional context.
-
-        '
-      properties:
-        error:
-          type: string
-          description: Error type identifier.
-          example: unauthorized
-        detail:
-          type:
-          - string
-          - 'null'
-          description: Additional context about the error.
-          example: invalid_api_key
-      required:
-      - error
-    ProviderListResponse:
-      type: object
-      description: Paginated provider list response.
-      properties:
-        pagination:
-          $ref: '#/components/schemas/Pagination'
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/Provider'
-      required:
-      - pagination
-      - data
-    ProviderTime:
-      type: object
-      description: Provider working hours for a day.
-      properties:
-        day_id:
-          type: integer
-          description: Day of the week (0=Sunday, 1=Monday, ..., 6=Saturday).
-          example: 1
-        open:
-          type: string
-          description: Opening time (HH:MM).
-          example: 09:00
-        close:
-          type: string
-          description: Closing time (HH:MM).
-          example: '18:00'
-        breaks:
-          type: array
-          description: Break periods during the day.
-          items:
-            type: object
-            properties:
-              open:
-                type: string
-                example: '13:00'
-              close:
-                type: string
-                example: '14:00'
-      required:
-      - day_id
-      - open
-      - close
     Provider:
       type: object
       description: Service provider resource (filtered for public API).
@@ -481,6 +404,83 @@ components:
       - prev_page
       - total_records
       - total_pages
+    ErrorDetailResponse:
+      type: object
+      description: 'Standard error response.
+
+        The `error` field contains the error type and the `detail` field
+
+        provides additional context.
+
+        '
+      properties:
+        error:
+          type: string
+          description: Error type identifier.
+          example: unauthorized
+        detail:
+          type:
+          - string
+          - 'null'
+          description: Additional context about the error.
+          example: invalid_api_key
+      required:
+      - error
+    ProviderTime:
+      type: object
+      description: Provider working hours for a day.
+      properties:
+        day_id:
+          type: integer
+          description: Day of the week (0=Sunday, 1=Monday, ..., 6=Saturday).
+          example: 1
+        open:
+          type: string
+          description: Opening time (HH:MM).
+          example: 09:00
+        close:
+          type: string
+          description: Closing time (HH:MM).
+          example: '18:00'
+        breaks:
+          type: array
+          description: Break periods during the day.
+          items:
+            type: object
+            properties:
+              open:
+                type: string
+                example: '13:00'
+              close:
+                type: string
+                example: '14:00'
+      required:
+      - day_id
+      - open
+      - close
+    ProviderListResponse:
+      type: object
+      description: Paginated provider list response.
+      properties:
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Provider'
+      required:
+      - pagination
+      - data
+  parameters:
+    ProviderId:
+      name: id
+      in: path
+      required: true
+      description: Provider unique identifier.
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
   securitySchemes:
     BearerAuth:
       type: http

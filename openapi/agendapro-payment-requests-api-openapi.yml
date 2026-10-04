@@ -159,29 +159,26 @@ paths:
         '502':
           $ref: '#/components/responses/UpstreamUnavailable'
 components:
+  parameters:
+    PaymentRequestId:
+      name: id
+      in: path
+      required: true
+      description: Payment request unique identifier.
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+    CartId:
+      name: id
+      in: path
+      required: true
+      description: Cart unique identifier.
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
   responses:
-    RateLimited:
-      description: Rate limit exceeded. Check the `Retry-After` header.
-      headers:
-        Retry-After:
-          description: Seconds until the rate limit resets.
-          schema:
-            type: integer
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorDetailResponse'
-          examples:
-            burstLimitExceeded:
-              summary: '[Error] 429 Too Many Requests - Burst limit'
-              value:
-                error: rate_limited
-                detail: burst_limit_exceeded
-            dailyQuotaExceeded:
-              summary: '[Error] 429 Too Many Requests - Daily quota'
-              value:
-                error: rate_limited
-                detail: daily_quota_exceeded
     UpstreamUnavailable:
       description: Upstream service is unavailable.
       content:
@@ -228,18 +225,6 @@ components:
               value:
                 error: unauthorized
                 detail: api_config_inactive
-    InternalServerError:
-      description: Internal server error.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorDetailResponse'
-          examples:
-            internalError:
-              summary: '[Error] 500 Internal Server Error - Internal error'
-              value:
-                error: internal_error
-                detail: unexpected
     NotFound:
       description: Resource not found.
       content:
@@ -252,6 +237,40 @@ components:
               value:
                 error: not_found
                 detail: booking
+    InternalServerError:
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            internalError:
+              summary: '[Error] 500 Internal Server Error - Internal error'
+              value:
+                error: internal_error
+                detail: unexpected
+    RateLimited:
+      description: Rate limit exceeded. Check the `Retry-After` header.
+      headers:
+        Retry-After:
+          description: Seconds until the rate limit resets.
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            burstLimitExceeded:
+              summary: '[Error] 429 Too Many Requests - Burst limit'
+              value:
+                error: rate_limited
+                detail: burst_limit_exceeded
+            dailyQuotaExceeded:
+              summary: '[Error] 429 Too Many Requests - Daily quota'
+              value:
+                error: rate_limited
+                detail: daily_quota_exceeded
   schemas:
     ErrorDetailResponse:
       type: object
@@ -320,25 +339,6 @@ components:
         updated_at:
           type: string
           format: date-time
-  parameters:
-    PaymentRequestId:
-      name: id
-      in: path
-      required: true
-      description: Payment request unique identifier.
-      schema:
-        type: integer
-        format: int64
-        minimum: 1
-    CartId:
-      name: id
-      in: path
-      required: true
-      description: Cart unique identifier.
-      schema:
-        type: integer
-        format: int64
-        minimum: 1
   securitySchemes:
     BearerAuth:
       type: http

@@ -511,113 +511,242 @@ components:
         type: integer
         format: int64
         minimum: 1
-  responses:
-    UpstreamUnavailable:
-      description: Upstream service is unavailable.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorDetailResponse'
-          examples:
-            upstreamUnavailable:
-              summary: '[Error] 502 Bad Gateway - Upstream unavailable'
-              value:
-                error: upstream_unavailable
-                detail: The upstream service is unavailable
-    Forbidden:
-      description: API key lacks the required scope for this operation.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorDetailResponse'
-          examples:
-            scopeDenied:
-              summary: '[Error] 403 Forbidden - Scope denied'
-              value:
-                error: forbidden
-                detail: scope_denied
-    RateLimited:
-      description: Rate limit exceeded. Check the `Retry-After` header.
-      headers:
-        Retry-After:
-          description: Seconds until the rate limit resets.
-          schema:
-            type: integer
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorDetailResponse'
-          examples:
-            burstLimitExceeded:
-              summary: '[Error] 429 Too Many Requests - Burst limit'
-              value:
-                error: rate_limited
-                detail: burst_limit_exceeded
-            dailyQuotaExceeded:
-              summary: '[Error] 429 Too Many Requests - Daily quota'
-              value:
-                error: rate_limited
-                detail: daily_quota_exceeded
-    Unauthorized:
-      description: Missing or invalid Bearer API key, or inactive API configuration.
-      headers:
-        WWW-Authenticate:
-          schema:
-            type: string
-            example: Bearer
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorDetailResponse'
-          examples:
-            invalidApiKey:
-              summary: '[Error] 401 Unauthorized - Invalid API key'
-              value:
-                error: unauthorized
-                detail: invalid_api_key
-            apiConfigInactive:
-              summary: '[Error] 401 Unauthorized - API access inactive'
-              value:
-                error: unauthorized
-                detail: api_config_inactive
-    InternalServerError:
-      description: Internal server error.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorDetailResponse'
-          examples:
-            internalError:
-              summary: '[Error] 500 Internal Server Error - Internal error'
-              value:
-                error: internal_error
-                detail: unexpected
-    NotFound:
-      description: Resource not found.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorDetailResponse'
-          examples:
-            notFound:
-              summary: '[Error] 404 Not Found - Resource not found'
-              value:
-                error: not_found
-                detail: booking
   schemas:
-    ClientListResponse:
+    CustomAttribute:
       type: object
-      description: Paginated client list response.
+      description: Client custom attribute value.
       properties:
-        pagination:
-          $ref: '#/components/schemas/Pagination'
+        id:
+          type: integer
+          description: Custom attribute definition ID.
+          example: 1
+        name:
+          type: string
+          description: Attribute name.
+          example: Preferred stylist
+        datatype:
+          type: string
+          enum:
+          - boolean
+          - categoric
+          - date
+          - datetime
+          - file
+          - float
+          - integer
+          - text
+          - textarea
+          description: Attribute data type.
+          example: text
+        value:
+          type:
+          - string
+          - 'null'
+          description: Attribute value (as string).
+          example: John
+      required:
+      - id
+      - name
+      - datatype
+    Pagination:
+      type: object
+      description: Pagination metadata.
+      properties:
+        current_page:
+          type: integer
+          minimum: 1
+          description: Current page.
+          example: 1
+        per_page:
+          type: integer
+          minimum: 1
+          maximum: 100
+          description: Records per page.
+          example: 30
+        next_page:
+          type:
+          - integer
+          - 'null'
+          minimum: 1
+          description: Next page number, or null on the last page.
+          example: 2
+        prev_page:
+          type:
+          - integer
+          - 'null'
+          minimum: 1
+          description: Previous page number, or null on the first page.
+          example: null
+        total_records:
+          type: integer
+          minimum: 0
+          description: Total records.
+          example: 95
+        total_pages:
+          type: integer
+          minimum: 0
+          description: Total pages.
+          example: 4
+      required:
+      - current_page
+      - per_page
+      - next_page
+      - prev_page
+      - total_records
+      - total_pages
+    ErrorDetailResponse:
+      type: object
+      description: 'Standard error response.
+
+        The `error` field contains the error type and the `detail` field
+
+        provides additional context.
+
+        '
+      properties:
+        error:
+          type: string
+          description: Error type identifier.
+          example: unauthorized
+        detail:
+          type:
+          - string
+          - 'null'
+          description: Additional context about the error.
+          example: invalid_api_key
+      required:
+      - error
+    ClientQuickSearchResponse:
+      type: object
+      description: Quick search client list response.
+      properties:
         data:
           type: array
           items:
-            $ref: '#/components/schemas/Client'
+            $ref: '#/components/schemas/ClientQuickSearchResult'
       required:
-      - pagination
       - data
+    CreateClientRequest:
+      type: object
+      description: Request body for creating a client.
+      properties:
+        first_name:
+          type: string
+          maxLength: 255
+          description: Client first name.
+          example: Maria
+        last_name:
+          type: string
+          maxLength: 255
+          description: Client last name.
+          example: Lopez
+        email:
+          type: string
+          format: email
+          maxLength: 255
+          description: Client email.
+          example: maria.lopez@example.com
+        identification_number:
+          type: string
+          maxLength: 255
+          description: National identification number.
+        phone:
+          type: string
+          maxLength: 255
+          description: Phone number in E.164 format.
+          example: '+56912345678'
+        address:
+          type: string
+          maxLength: 255
+          description: Street address.
+        district:
+          type: string
+          maxLength: 255
+          description: District or neighborhood.
+        city:
+          type: string
+          maxLength: 255
+          description: City.
+        region:
+          type: string
+          maxLength: 255
+          description: Region or state.
+        age:
+          type: integer
+          minimum: 1
+          description: Client age.
+        gender:
+          type: integer
+          enum:
+          - 0
+          - 1
+          - 2
+          description: 'Gender: 0 = other, 1 = female, 2 = male.'
+        birth_day:
+          type: integer
+          minimum: 1
+          description: Day of birth.
+        birth_month:
+          type: integer
+          minimum: 1
+          description: Month of birth.
+        birth_year:
+          type: integer
+          minimum: 1
+          description: Year of birth.
+        custom_attributes:
+          type: array
+          description: Custom attribute values to set.
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                description: Custom attribute definition ID.
+              value:
+                description: Attribute value (type depends on the attribute datatype).
+            required:
+            - id
+            - value
+      required:
+      - first_name
+    ClientQuickSearchResult:
+      type: object
+      description: A single client returned by quick search.
+      properties:
+        id:
+          type: integer
+          description: Client ID.
+          example: 223190
+        full_name:
+          type: string
+          description: Client full name (first and last name combined).
+          example: Maria Lopez
+        email:
+          type:
+          - string
+          - 'null'
+          format: email
+          description: Client email.
+          example: maria.lopez@example.com
+        phone:
+          type:
+          - string
+          - 'null'
+          description: Client phone in E.164 format.
+          example: '+56912345678'
+        identification_number:
+          type:
+          - string
+          - 'null'
+          description: National identification number.
+          example: 12345678-9
+        record_number:
+          type:
+          - string
+          - 'null'
+          description: Internal record number.
+          example: C-0001
     Client:
       type: object
       description: Client resource (filtered for public API).
@@ -778,159 +907,19 @@ components:
       - active
       - created_at
       - updated_at
-    ErrorDetailResponse:
+    ClientListResponse:
       type: object
-      description: 'Standard error response.
-
-        The `error` field contains the error type and the `detail` field
-
-        provides additional context.
-
-        '
+      description: Paginated client list response.
       properties:
-        error:
-          type: string
-          description: Error type identifier.
-          example: unauthorized
-        detail:
-          type:
-          - string
-          - 'null'
-          description: Additional context about the error.
-          example: invalid_api_key
-      required:
-      - error
-    ClientQuickSearchResponse:
-      type: object
-      description: Quick search client list response.
-      properties:
+        pagination:
+          $ref: '#/components/schemas/Pagination'
         data:
           type: array
           items:
-            $ref: '#/components/schemas/ClientQuickSearchResult'
+            $ref: '#/components/schemas/Client'
       required:
+      - pagination
       - data
-    ClientQuickSearchResult:
-      type: object
-      description: A single client returned by quick search.
-      properties:
-        id:
-          type: integer
-          description: Client ID.
-          example: 223190
-        full_name:
-          type: string
-          description: Client full name (first and last name combined).
-          example: Maria Lopez
-        email:
-          type:
-          - string
-          - 'null'
-          format: email
-          description: Client email.
-          example: maria.lopez@example.com
-        phone:
-          type:
-          - string
-          - 'null'
-          description: Client phone in E.164 format.
-          example: '+56912345678'
-        identification_number:
-          type:
-          - string
-          - 'null'
-          description: National identification number.
-          example: 12345678-9
-        record_number:
-          type:
-          - string
-          - 'null'
-          description: Internal record number.
-          example: C-0001
-    CreateClientRequest:
-      type: object
-      description: Request body for creating a client.
-      properties:
-        first_name:
-          type: string
-          maxLength: 255
-          description: Client first name.
-          example: Maria
-        last_name:
-          type: string
-          maxLength: 255
-          description: Client last name.
-          example: Lopez
-        email:
-          type: string
-          format: email
-          maxLength: 255
-          description: Client email.
-          example: maria.lopez@example.com
-        identification_number:
-          type: string
-          maxLength: 255
-          description: National identification number.
-        phone:
-          type: string
-          maxLength: 255
-          description: Phone number in E.164 format.
-          example: '+56912345678'
-        address:
-          type: string
-          maxLength: 255
-          description: Street address.
-        district:
-          type: string
-          maxLength: 255
-          description: District or neighborhood.
-        city:
-          type: string
-          maxLength: 255
-          description: City.
-        region:
-          type: string
-          maxLength: 255
-          description: Region or state.
-        age:
-          type: integer
-          minimum: 1
-          description: Client age.
-        gender:
-          type: integer
-          enum:
-          - 0
-          - 1
-          - 2
-          description: 'Gender: 0 = other, 1 = female, 2 = male.'
-        birth_day:
-          type: integer
-          minimum: 1
-          description: Day of birth.
-        birth_month:
-          type: integer
-          minimum: 1
-          description: Month of birth.
-        birth_year:
-          type: integer
-          minimum: 1
-          description: Year of birth.
-        custom_attributes:
-          type: array
-          description: Custom attribute values to set.
-          items:
-            type: object
-            properties:
-              id:
-                type: integer
-                description: Custom attribute definition ID.
-              value:
-                description: Attribute value (type depends on the attribute datatype).
-            required:
-            - id
-            - value
-      required:
-      - first_name
     UpdateClientRequest:
       type: object
       description: Request body for updating a client (partial update).
@@ -1009,88 +998,99 @@ components:
             required:
             - id
             - value
-    CustomAttribute:
-      type: object
-      description: Client custom attribute value.
-      properties:
-        id:
-          type: integer
-          description: Custom attribute definition ID.
-          example: 1
-        name:
-          type: string
-          description: Attribute name.
-          example: Preferred stylist
-        datatype:
-          type: string
-          enum:
-          - boolean
-          - categoric
-          - date
-          - datetime
-          - file
-          - float
-          - integer
-          - text
-          - textarea
-          description: Attribute data type.
-          example: text
-        value:
-          type:
-          - string
-          - 'null'
-          description: Attribute value (as string).
-          example: John
-      required:
-      - id
-      - name
-      - datatype
-    Pagination:
-      type: object
-      description: Pagination metadata.
-      properties:
-        current_page:
-          type: integer
-          minimum: 1
-          description: Current page.
-          example: 1
-        per_page:
-          type: integer
-          minimum: 1
-          maximum: 100
-          description: Records per page.
-          example: 30
-        next_page:
-          type:
-          - integer
-          - 'null'
-          minimum: 1
-          description: Next page number, or null on the last page.
-          example: 2
-        prev_page:
-          type:
-          - integer
-          - 'null'
-          minimum: 1
-          description: Previous page number, or null on the first page.
-          example: null
-        total_records:
-          type: integer
-          minimum: 0
-          description: Total records.
-          example: 95
-        total_pages:
-          type: integer
-          minimum: 0
-          description: Total pages.
-          example: 4
-      required:
-      - current_page
-      - per_page
-      - next_page
-      - prev_page
-      - total_records
-      - total_pages
+  responses:
+    UpstreamUnavailable:
+      description: Upstream service is unavailable.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            upstreamUnavailable:
+              summary: '[Error] 502 Bad Gateway - Upstream unavailable'
+              value:
+                error: upstream_unavailable
+                detail: The upstream service is unavailable
+    Forbidden:
+      description: API key lacks the required scope for this operation.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            scopeDenied:
+              summary: '[Error] 403 Forbidden - Scope denied'
+              value:
+                error: forbidden
+                detail: scope_denied
+    Unauthorized:
+      description: Missing or invalid Bearer API key, or inactive API configuration.
+      headers:
+        WWW-Authenticate:
+          schema:
+            type: string
+            example: Bearer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            invalidApiKey:
+              summary: '[Error] 401 Unauthorized - Invalid API key'
+              value:
+                error: unauthorized
+                detail: invalid_api_key
+            apiConfigInactive:
+              summary: '[Error] 401 Unauthorized - API access inactive'
+              value:
+                error: unauthorized
+                detail: api_config_inactive
+    NotFound:
+      description: Resource not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            notFound:
+              summary: '[Error] 404 Not Found - Resource not found'
+              value:
+                error: not_found
+                detail: booking
+    InternalServerError:
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            internalError:
+              summary: '[Error] 500 Internal Server Error - Internal error'
+              value:
+                error: internal_error
+                detail: unexpected
+    RateLimited:
+      description: Rate limit exceeded. Check the `Retry-After` header.
+      headers:
+        Retry-After:
+          description: Seconds until the rate limit resets.
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            burstLimitExceeded:
+              summary: '[Error] 429 Too Many Requests - Burst limit'
+              value:
+                error: rate_limited
+                detail: burst_limit_exceeded
+            dailyQuotaExceeded:
+              summary: '[Error] 429 Too Many Requests - Daily quota'
+              value:
+                error: rate_limited
+                detail: daily_quota_exceeded
   securitySchemes:
     BearerAuth:
       type: http
