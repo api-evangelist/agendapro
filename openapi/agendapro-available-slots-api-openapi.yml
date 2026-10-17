@@ -131,18 +131,6 @@ paths:
           $ref: '#/components/responses/UpstreamUnavailable'
 components:
   responses:
-    UpstreamUnavailable:
-      description: Upstream service is unavailable.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorDetailResponse'
-          examples:
-            upstreamUnavailable:
-              summary: '[Error] 502 Bad Gateway - Upstream unavailable'
-              value:
-                error: upstream_unavailable
-                detail: The upstream service is unavailable
     Forbidden:
       description: API key lacks the required scope for this operation.
       content:
@@ -155,28 +143,6 @@ components:
               value:
                 error: forbidden
                 detail: scope_denied
-    Unauthorized:
-      description: Missing or invalid Bearer API key, or inactive API configuration.
-      headers:
-        WWW-Authenticate:
-          schema:
-            type: string
-            example: Bearer
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorDetailResponse'
-          examples:
-            invalidApiKey:
-              summary: '[Error] 401 Unauthorized - Invalid API key'
-              value:
-                error: unauthorized
-                detail: invalid_api_key
-            apiConfigInactive:
-              summary: '[Error] 401 Unauthorized - API access inactive'
-              value:
-                error: unauthorized
-                detail: api_config_inactive
     NotFound:
       description: Resource not found.
       content:
@@ -189,18 +155,6 @@ components:
               value:
                 error: not_found
                 detail: booking
-    InternalServerError:
-      description: Internal server error.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorDetailResponse'
-          examples:
-            internalError:
-              summary: '[Error] 500 Internal Server Error - Internal error'
-              value:
-                error: internal_error
-                detail: unexpected
     RateLimited:
       description: Rate limit exceeded. Check the `Retry-After` header.
       headers:
@@ -223,6 +177,52 @@ components:
               value:
                 error: rate_limited
                 detail: daily_quota_exceeded
+    Unauthorized:
+      description: Missing or invalid Bearer API key, or inactive API configuration.
+      headers:
+        WWW-Authenticate:
+          schema:
+            type: string
+            example: Bearer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            invalidApiKey:
+              summary: '[Error] 401 Unauthorized - Invalid API key'
+              value:
+                error: unauthorized
+                detail: invalid_api_key
+            apiConfigInactive:
+              summary: '[Error] 401 Unauthorized - API access inactive'
+              value:
+                error: unauthorized
+                detail: api_config_inactive
+    UpstreamUnavailable:
+      description: Upstream service is unavailable.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            upstreamUnavailable:
+              summary: '[Error] 502 Bad Gateway - Upstream unavailable'
+              value:
+                error: upstream_unavailable
+                detail: The upstream service is unavailable
+    InternalServerError:
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            internalError:
+              summary: '[Error] 500 Internal Server Error - Internal error'
+              value:
+                error: internal_error
+                detail: unexpected
   schemas:
     ErrorDetailResponse:
       type: object
@@ -246,26 +246,6 @@ components:
           example: invalid_api_key
       required:
       - error
-    AvailableSlot:
-      type: object
-      description: A single available booking slot.
-      properties:
-        start_time:
-          type: string
-          description: Slot start time (HH:MM).
-          example: 09:00
-        end_time:
-          type: string
-          description: Slot end time (HH:MM).
-          example: 09:30
-        provider_id:
-          type: integer
-          description: Provider ID for this slot.
-          example: 12964
-        provider_name:
-          type: string
-          description: Provider display name.
-          example: Dobby
     AvailableSlotsMetadata:
       type: object
       description: Metadata summarising the available slots query.
@@ -291,6 +271,26 @@ components:
           type: integer
           description: Total number of slots returned.
           example: 22
+    AvailableSlot:
+      type: object
+      description: A single available booking slot.
+      properties:
+        start_time:
+          type: string
+          description: Slot start time (HH:MM).
+          example: 09:00
+        end_time:
+          type: string
+          description: Slot end time (HH:MM).
+          example: 09:30
+        provider_id:
+          type: integer
+          description: Provider ID for this slot.
+          example: 12964
+        provider_name:
+          type: string
+          description: Provider display name.
+          example: Dobby
   securitySchemes:
     BearerAuth:
       type: http

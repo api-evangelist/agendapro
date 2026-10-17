@@ -193,6 +193,65 @@ components:
       required:
       - id
       - url
+    LocationTime:
+      type: object
+      description: Location operating hours for a day.
+      properties:
+        id:
+          type: integer
+          example: 1
+        day_id:
+          type: integer
+          description: Day of the week (0=Sunday, 1=Monday, ..., 6=Saturday).
+          example: 1
+        open:
+          type: string
+          description: Opening time (HH:MM).
+          example: 09:00
+        close:
+          type: string
+          description: Closing time (HH:MM).
+          example: '18:00'
+      required:
+      - id
+      - day_id
+      - open
+      - close
+    LocationListResponse:
+      type: object
+      description: Paginated location list response.
+      properties:
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Location'
+      required:
+      - pagination
+      - data
+    ErrorDetailResponse:
+      type: object
+      description: 'Standard error response.
+
+        The `error` field contains the error type and the `detail` field
+
+        provides additional context.
+
+        '
+      properties:
+        error:
+          type: string
+          description: Error type identifier.
+          example: unauthorized
+        detail:
+          type:
+          - string
+          - 'null'
+          description: Additional context about the error.
+          example: invalid_api_key
+      required:
+      - error
     Pagination:
       type: object
       description: Pagination metadata.
@@ -239,28 +298,6 @@ components:
       - prev_page
       - total_records
       - total_pages
-    ErrorDetailResponse:
-      type: object
-      description: 'Standard error response.
-
-        The `error` field contains the error type and the `detail` field
-
-        provides additional context.
-
-        '
-      properties:
-        error:
-          type: string
-          description: Error type identifier.
-          example: unauthorized
-        detail:
-          type:
-          - string
-          - 'null'
-          description: Additional context about the error.
-          example: invalid_api_key
-      required:
-      - error
     Location:
       type: object
       description: Location resource (filtered for public API).
@@ -404,56 +441,17 @@ components:
       - times
       - created_at
       - updated_at
-    LocationTime:
-      type: object
-      description: Location operating hours for a day.
-      properties:
-        id:
-          type: integer
-          example: 1
-        day_id:
-          type: integer
-          description: Day of the week (0=Sunday, 1=Monday, ..., 6=Saturday).
-          example: 1
-        open:
-          type: string
-          description: Opening time (HH:MM).
-          example: 09:00
-        close:
-          type: string
-          description: Closing time (HH:MM).
-          example: '18:00'
-      required:
-      - id
-      - day_id
-      - open
-      - close
-    LocationListResponse:
-      type: object
-      description: Paginated location list response.
-      properties:
-        pagination:
-          $ref: '#/components/schemas/Pagination'
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/Location'
-      required:
-      - pagination
-      - data
+  parameters:
+    LocationId:
+      name: id
+      in: path
+      required: true
+      description: Location unique identifier.
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
   responses:
-    UpstreamUnavailable:
-      description: Upstream service is unavailable.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorDetailResponse'
-          examples:
-            upstreamUnavailable:
-              summary: '[Error] 502 Bad Gateway - Upstream unavailable'
-              value:
-                error: upstream_unavailable
-                detail: The upstream service is unavailable
     Forbidden:
       description: API key lacks the required scope for this operation.
       content:
@@ -466,28 +464,6 @@ components:
               value:
                 error: forbidden
                 detail: scope_denied
-    Unauthorized:
-      description: Missing or invalid Bearer API key, or inactive API configuration.
-      headers:
-        WWW-Authenticate:
-          schema:
-            type: string
-            example: Bearer
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorDetailResponse'
-          examples:
-            invalidApiKey:
-              summary: '[Error] 401 Unauthorized - Invalid API key'
-              value:
-                error: unauthorized
-                detail: invalid_api_key
-            apiConfigInactive:
-              summary: '[Error] 401 Unauthorized - API access inactive'
-              value:
-                error: unauthorized
-                detail: api_config_inactive
     NotFound:
       description: Resource not found.
       content:
@@ -500,18 +476,6 @@ components:
               value:
                 error: not_found
                 detail: booking
-    InternalServerError:
-      description: Internal server error.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorDetailResponse'
-          examples:
-            internalError:
-              summary: '[Error] 500 Internal Server Error - Internal error'
-              value:
-                error: internal_error
-                detail: unexpected
     RateLimited:
       description: Rate limit exceeded. Check the `Retry-After` header.
       headers:
@@ -534,16 +498,52 @@ components:
               value:
                 error: rate_limited
                 detail: daily_quota_exceeded
-  parameters:
-    LocationId:
-      name: id
-      in: path
-      required: true
-      description: Location unique identifier.
-      schema:
-        type: integer
-        format: int64
-        minimum: 1
+    Unauthorized:
+      description: Missing or invalid Bearer API key, or inactive API configuration.
+      headers:
+        WWW-Authenticate:
+          schema:
+            type: string
+            example: Bearer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            invalidApiKey:
+              summary: '[Error] 401 Unauthorized - Invalid API key'
+              value:
+                error: unauthorized
+                detail: invalid_api_key
+            apiConfigInactive:
+              summary: '[Error] 401 Unauthorized - API access inactive'
+              value:
+                error: unauthorized
+                detail: api_config_inactive
+    UpstreamUnavailable:
+      description: Upstream service is unavailable.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            upstreamUnavailable:
+              summary: '[Error] 502 Bad Gateway - Upstream unavailable'
+              value:
+                error: upstream_unavailable
+                detail: The upstream service is unavailable
+    InternalServerError:
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            internalError:
+              summary: '[Error] 500 Internal Server Error - Internal error'
+              value:
+                error: internal_error
+                detail: unexpected
   securitySchemes:
     BearerAuth:
       type: http

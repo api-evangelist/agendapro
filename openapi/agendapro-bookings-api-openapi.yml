@@ -591,6 +591,159 @@ paths:
           $ref: '#/components/responses/UpstreamUnavailable'
 components:
   schemas:
+    BookingService:
+      type: object
+      description: Embedded service summary.
+      properties:
+        id:
+          type: integer
+          example: 10
+        name:
+          type: string
+          example: Haircut
+      required:
+      - id
+      - name
+    BookingListResponse:
+      type: object
+      description: Paginated booking list response.
+      properties:
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Booking'
+      required:
+      - pagination
+      - data
+    BookingSale:
+      type:
+      - object
+      - 'null'
+      description: Sale covering this booking. For bookings covered by a membership plan, this is the plan's sale, which may cover several bookings.
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Sale ID.
+          example: 8842
+        status:
+          type: string
+          enum:
+          - partially_paid
+          - paid
+          - canceled
+          - refunded
+          description: Sale status.
+          example: paid
+        cart_id:
+          type: integer
+          format: int64
+          description: Cart the sale was created from.
+          example: 9310
+      required:
+      - id
+      - status
+      - cart_id
+    BookingServiceProvider:
+      type: object
+      description: Embedded service provider summary.
+      properties:
+        id:
+          type: integer
+          example: 5
+        public_name:
+          type: string
+          example: John Stylist
+      required:
+      - id
+      - public_name
+    BookingStatus:
+      type: object
+      description: Booking status.
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Confirmed
+        description:
+          type:
+          - string
+          - 'null'
+      required:
+      - id
+      - name
+    ErrorDetailResponse:
+      type: object
+      description: 'Standard error response.
+
+        The `error` field contains the error type and the `detail` field
+
+        provides additional context.
+
+        '
+      properties:
+        error:
+          type: string
+          description: Error type identifier.
+          example: unauthorized
+        detail:
+          type:
+          - string
+          - 'null'
+          description: Additional context about the error.
+          example: invalid_api_key
+      required:
+      - error
+    Pagination:
+      type: object
+      description: Pagination metadata.
+      properties:
+        current_page:
+          type: integer
+          minimum: 1
+          description: Current page.
+          example: 1
+        per_page:
+          type: integer
+          minimum: 1
+          maximum: 100
+          description: Records per page.
+          example: 30
+        next_page:
+          type:
+          - integer
+          - 'null'
+          minimum: 1
+          description: Next page number, or null on the last page.
+          example: 2
+        prev_page:
+          type:
+          - integer
+          - 'null'
+          minimum: 1
+          description: Previous page number, or null on the first page.
+          example: null
+        total_records:
+          type: integer
+          minimum: 0
+          description: Total records.
+          example: 95
+        total_pages:
+          type: integer
+          minimum: 0
+          description: Total pages.
+          example: 4
+      required:
+      - current_page
+      - per_page
+      - next_page
+      - prev_page
+      - total_records
+      - total_pages
     CreateBookingRequest:
       type: object
       description: Request body for creating a booking.
@@ -644,28 +797,6 @@ components:
       - client_id
       - location_id
       - status_id
-    ErrorDetailResponse:
-      type: object
-      description: 'Standard error response.
-
-        The `error` field contains the error type and the `detail` field
-
-        provides additional context.
-
-        '
-      properties:
-        error:
-          type: string
-          description: Error type identifier.
-          example: unauthorized
-        detail:
-          type:
-          - string
-          - 'null'
-          description: Additional context about the error.
-          example: invalid_api_key
-      required:
-      - error
     Booking:
       type: object
       description: Booking resource (filtered for public API).
@@ -773,78 +904,6 @@ components:
       - sale
       - created_at
       - updated_at
-    Pagination:
-      type: object
-      description: Pagination metadata.
-      properties:
-        current_page:
-          type: integer
-          minimum: 1
-          description: Current page.
-          example: 1
-        per_page:
-          type: integer
-          minimum: 1
-          maximum: 100
-          description: Records per page.
-          example: 30
-        next_page:
-          type:
-          - integer
-          - 'null'
-          minimum: 1
-          description: Next page number, or null on the last page.
-          example: 2
-        prev_page:
-          type:
-          - integer
-          - 'null'
-          minimum: 1
-          description: Previous page number, or null on the first page.
-          example: null
-        total_records:
-          type: integer
-          minimum: 0
-          description: Total records.
-          example: 95
-        total_pages:
-          type: integer
-          minimum: 0
-          description: Total pages.
-          example: 4
-      required:
-      - current_page
-      - per_page
-      - next_page
-      - prev_page
-      - total_records
-      - total_pages
-    BookingListResponse:
-      type: object
-      description: Paginated booking list response.
-      properties:
-        pagination:
-          $ref: '#/components/schemas/Pagination'
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/Booking'
-      required:
-      - pagination
-      - data
-    BookingServiceProvider:
-      type: object
-      description: Embedded service provider summary.
-      properties:
-        id:
-          type: integer
-          example: 5
-        public_name:
-          type: string
-          example: John Stylist
-      required:
-      - id
-      - public_name
     UpdateBookingRequest:
       type: object
       description: Request body for updating a booking (partial update).
@@ -885,78 +944,7 @@ components:
           - integer
           - 'null'
           description: Time resource ID.
-    BookingStatus:
-      type: object
-      description: Booking status.
-      properties:
-        id:
-          type: integer
-          example: 1
-        name:
-          type: string
-          example: Confirmed
-        description:
-          type:
-          - string
-          - 'null'
-      required:
-      - id
-      - name
-    BookingSale:
-      type:
-      - object
-      - 'null'
-      description: Sale covering this booking. For bookings covered by a membership plan, this is the plan's sale, which may cover several bookings.
-      properties:
-        id:
-          type: integer
-          format: int64
-          description: Sale ID.
-          example: 8842
-        status:
-          type: string
-          enum:
-          - partially_paid
-          - paid
-          - canceled
-          - refunded
-          description: Sale status.
-          example: paid
-        cart_id:
-          type: integer
-          format: int64
-          description: Cart the sale was created from.
-          example: 9310
-      required:
-      - id
-      - status
-      - cart_id
-    BookingService:
-      type: object
-      description: Embedded service summary.
-      properties:
-        id:
-          type: integer
-          example: 10
-        name:
-          type: string
-          example: Haircut
-      required:
-      - id
-      - name
   responses:
-    UpstreamUnavailable:
-      description: Upstream service is unavailable.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorDetailResponse'
-          examples:
-            upstreamUnavailable:
-              summary: '[Error] 502 Bad Gateway - Upstream unavailable'
-              value:
-                error: upstream_unavailable
-                detail: The upstream service is unavailable
     Forbidden:
       description: API key lacks the required scope for this operation.
       content:
@@ -969,28 +957,6 @@ components:
               value:
                 error: forbidden
                 detail: scope_denied
-    Unauthorized:
-      description: Missing or invalid Bearer API key, or inactive API configuration.
-      headers:
-        WWW-Authenticate:
-          schema:
-            type: string
-            example: Bearer
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorDetailResponse'
-          examples:
-            invalidApiKey:
-              summary: '[Error] 401 Unauthorized - Invalid API key'
-              value:
-                error: unauthorized
-                detail: invalid_api_key
-            apiConfigInactive:
-              summary: '[Error] 401 Unauthorized - API access inactive'
-              value:
-                error: unauthorized
-                detail: api_config_inactive
     NotFound:
       description: Resource not found.
       content:
@@ -1003,18 +969,6 @@ components:
               value:
                 error: not_found
                 detail: booking
-    InternalServerError:
-      description: Internal server error.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorDetailResponse'
-          examples:
-            internalError:
-              summary: '[Error] 500 Internal Server Error - Internal error'
-              value:
-                error: internal_error
-                detail: unexpected
     RateLimited:
       description: Rate limit exceeded. Check the `Retry-After` header.
       headers:
@@ -1037,6 +991,52 @@ components:
               value:
                 error: rate_limited
                 detail: daily_quota_exceeded
+    Unauthorized:
+      description: Missing or invalid Bearer API key, or inactive API configuration.
+      headers:
+        WWW-Authenticate:
+          schema:
+            type: string
+            example: Bearer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            invalidApiKey:
+              summary: '[Error] 401 Unauthorized - Invalid API key'
+              value:
+                error: unauthorized
+                detail: invalid_api_key
+            apiConfigInactive:
+              summary: '[Error] 401 Unauthorized - API access inactive'
+              value:
+                error: unauthorized
+                detail: api_config_inactive
+    UpstreamUnavailable:
+      description: Upstream service is unavailable.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            upstreamUnavailable:
+              summary: '[Error] 502 Bad Gateway - Upstream unavailable'
+              value:
+                error: upstream_unavailable
+                detail: The upstream service is unavailable
+    InternalServerError:
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            internalError:
+              summary: '[Error] 500 Internal Server Error - Internal error'
+              value:
+                error: internal_error
+                detail: unexpected
   parameters:
     BookingId:
       name: id

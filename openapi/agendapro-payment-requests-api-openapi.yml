@@ -159,38 +159,7 @@ paths:
         '502':
           $ref: '#/components/responses/UpstreamUnavailable'
 components:
-  parameters:
-    PaymentRequestId:
-      name: id
-      in: path
-      required: true
-      description: Payment request unique identifier.
-      schema:
-        type: integer
-        format: int64
-        minimum: 1
-    CartId:
-      name: id
-      in: path
-      required: true
-      description: Cart unique identifier.
-      schema:
-        type: integer
-        format: int64
-        minimum: 1
   responses:
-    UpstreamUnavailable:
-      description: Upstream service is unavailable.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorDetailResponse'
-          examples:
-            upstreamUnavailable:
-              summary: '[Error] 502 Bad Gateway - Upstream unavailable'
-              value:
-                error: upstream_unavailable
-                detail: The upstream service is unavailable
     Forbidden:
       description: API key lacks the required scope for this operation.
       content:
@@ -203,28 +172,6 @@ components:
               value:
                 error: forbidden
                 detail: scope_denied
-    Unauthorized:
-      description: Missing or invalid Bearer API key, or inactive API configuration.
-      headers:
-        WWW-Authenticate:
-          schema:
-            type: string
-            example: Bearer
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorDetailResponse'
-          examples:
-            invalidApiKey:
-              summary: '[Error] 401 Unauthorized - Invalid API key'
-              value:
-                error: unauthorized
-                detail: invalid_api_key
-            apiConfigInactive:
-              summary: '[Error] 401 Unauthorized - API access inactive'
-              value:
-                error: unauthorized
-                detail: api_config_inactive
     NotFound:
       description: Resource not found.
       content:
@@ -237,18 +184,6 @@ components:
               value:
                 error: not_found
                 detail: booking
-    InternalServerError:
-      description: Internal server error.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorDetailResponse'
-          examples:
-            internalError:
-              summary: '[Error] 500 Internal Server Error - Internal error'
-              value:
-                error: internal_error
-                detail: unexpected
     RateLimited:
       description: Rate limit exceeded. Check the `Retry-After` header.
       headers:
@@ -271,6 +206,71 @@ components:
               value:
                 error: rate_limited
                 detail: daily_quota_exceeded
+    Unauthorized:
+      description: Missing or invalid Bearer API key, or inactive API configuration.
+      headers:
+        WWW-Authenticate:
+          schema:
+            type: string
+            example: Bearer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            invalidApiKey:
+              summary: '[Error] 401 Unauthorized - Invalid API key'
+              value:
+                error: unauthorized
+                detail: invalid_api_key
+            apiConfigInactive:
+              summary: '[Error] 401 Unauthorized - API access inactive'
+              value:
+                error: unauthorized
+                detail: api_config_inactive
+    UpstreamUnavailable:
+      description: Upstream service is unavailable.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            upstreamUnavailable:
+              summary: '[Error] 502 Bad Gateway - Upstream unavailable'
+              value:
+                error: upstream_unavailable
+                detail: The upstream service is unavailable
+    InternalServerError:
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDetailResponse'
+          examples:
+            internalError:
+              summary: '[Error] 500 Internal Server Error - Internal error'
+              value:
+                error: internal_error
+                detail: unexpected
+  parameters:
+    PaymentRequestId:
+      name: id
+      in: path
+      required: true
+      description: Payment request unique identifier.
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+    CartId:
+      name: id
+      in: path
+      required: true
+      description: Cart unique identifier.
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
   schemas:
     ErrorDetailResponse:
       type: object
