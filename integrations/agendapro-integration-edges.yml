@@ -1,16 +1,53 @@
 generated: '2026-10-12'
-method: none
+method: searched
 source:
 - https://zapier.com/apps/agendapro/integrations
 - https://n8n.io/integrations/agendapro/
 - https://composio.dev/toolkits/agendapro
 - https://monid.ai/tools/agendapro
 checked:
+- https://api.nuget.org/v3
 - https://composio.dev/toolkits/agendapro
+- https://crates.io/api/v1
 - https://monid.ai/tools/agendapro
 - https://n8n.io/integrations/agendapro/
+- https://proxy.golang.org
+- https://pypi.org/pypi
+- https://registry.npmjs.org
+- https://repo1.maven.org/maven2
+- https://rubygems.org/api/v1
 - https://zapier.com/apps/agendapro/integrations
 summary: null
 marketplace_apps: []
-edges: []
+edges:
+- partner_name: npm registry
+  partner: npm
+  partner_match: register
+  type: register
+  direction: provider-built
+  category: official SDK (JavaScript/TypeScript)
+  evidence: https://www.npmjs.com/package/@agendapro/react-native-events-calendar
+  channel: package-registry
+  relationship: distribution-channel
+  contract_reference:
+    register: npm registry (public registry JSON)
+    spec_file: null
+    language: JavaScript/TypeScript
+    packages:
+    - name: '@agendapro/react-native-events-calendar'
+      version: 0.6.0
+      released: '2022-04-04'
+      released_field: modified
+      lapsed: true
+      page: https://www.npmjs.com/package/@agendapro/react-native-events-calendar
+      repo_leg: github-org:agendapro
+      publisher_leg: email:agendapro.com
+      matched_by: domain
+    current: false
+    signal_note: 'an official package on the registry: distribution, not an integration; lapsed = no release in
+      24 months'
+    detected_by: sweep-official-sdks.py
+    detected: '2026-10-18'
+  detected_by: sweep-official-sdks.py
+  first_seen: '2026-10-18'
 templates: []
