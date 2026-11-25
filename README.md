@@ -105,32 +105,45 @@ Model Context Protocol servers that expose the API to agents.
 
 OpenAPI overlays, including conversational phrasing for each operation.
 
-- [Agendapro Connect V3 Overlay](https://apis.io/overlays/agendapro/agendapro-connect-v3-overlay/)
+- [AgendaPro Connect V3 Overlay](https://apis.io/overlays/agendapro/agendapro-connect-v3-overlay/)
+
+#### Governance rules (1)
+
+Spectral rulesets for the provider's contracts.
+
+- [AgendaPro API Rules](https://apis.io/rules/agendapro/agendapro-rules/)
 
 #### Security (2)
 
 Authentication, trust centre, and vulnerability disclosure.
 
-- [Agendapro Authentication](https://apis.io/security/agendapro/agendapro-authentication/)
-- [Agendapro Domain Security](https://apis.io/security/agendapro/agendapro-domain-security/)
+- [AgendaPro Authentication](https://apis.io/security/agendapro/agendapro-authentication/)
+- [AgendaPro Domain Security](https://apis.io/security/agendapro/agendapro-domain-security/)
 
 #### OAuth scopes (1)
 
 The permissions the API asks for.
 
-- [Agendapro Scopes](https://apis.io/scopes/agendapro/agendapro-scopes/)
+- [AgendaPro Scopes](https://apis.io/scopes/agendapro/agendapro-scopes/)
 
-#### Plans and pricing (1)
+#### Plans and pricing (2)
 
 Published plans, tiers and prices.
 
-- [Agendapro Plans Pricing](https://apis.io/plans/agendapro/agendapro-plans-pricing/)
+- [AgendaPro Plans Pricing](https://apis.io/plans/agendapro/agendapro-plans-pricing/)
+- [AgendaPro Price Estimates](https://apis.io/plans/agendapro/agendapro-price-estimates/)
 
 #### Rate limits (1)
 
 Published request limits.
 
-- [Agendapro Rate Limits](https://apis.io/rate-limits/agendapro/agendapro-rate-limits/)
+- [AgendaPro Rate Limits](https://apis.io/rate-limits/agendapro/agendapro-rate-limits/)
+
+#### FinOps (1)
+
+What the API costs to run, by operation.
+
+- [AgendaPro Finops](https://apis.io/finops/agendapro/agendapro-finops/)
 
 ## Where to find this API
 
@@ -151,18 +164,18 @@ Links to the company's own pages. This repository publishes no copy of their spe
 
 ## API Evangelist rating
 
-**Kin Score 55.6** — strong · rubric 0.25.0 · scored 2026-10-23
+**Kin Score 56.8** — strong · rubric 0.28.1 · scored 2026-11-21
 
 | Facet | Score |
 |---|---|
 | Discoverability | 73.2 |
 | Contract quality | 58.2 |
-| Contract governance | 4.5 |
-| Operational transparency | 39.5 |
+| Contract governance | 18.2 |
+| Operational transparency | 38.1 |
 | Developer ergonomics | 58.9 |
-| Access clarity | 76.3 |
+| Access clarity | 78.7 |
 
-**Agent readiness 39.9** — agent-ready (gated down from agent-native)
+**Agent readiness 39.1** — agent-ready (gated down from agent-native)
 
 | Agent-readiness dimension | Result |
 |---|---|
@@ -187,8 +200,12 @@ Links to the company's own pages. This repository publishes no copy of their spe
 | Agentic Commerce | — |
 | Pagination Ratio | partial |
 | Operation Distinctiveness | distinct |
+| MCP Tool Quality | na |
+| Onboarding Descriptor | — |
+| Dns Aid Index | na |
+| Markdown Negotiation | na |
 
-**Regulatory alignment 31.3** — Payments
+**Regulatory alignment 25.9** — Payments
 
 The rubric is published at [github.com/api-evangelist/kin-score](https://github.com/api-evangelist/kin-score). The per-check breakdown behind these numbers — which checks were earned, partial or missed — along with score history and how this provider compares to its peers, is available at [apis.io/providers/agendapro/](https://apis.io/providers/agendapro/).
 
